@@ -1,1226 +1,3583 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="theme-color" content="#000000">
-<meta name="screen-orientation" content="landscape">
-<style id="rotate-style">
-#rotate-msg{
-  display:none;position:fixed;inset:0;z-index:99999;
-  background:#000;flex-direction:column;
-  align-items:center;justify-content:center;
-  font-family:'Cinzel',serif;
-}
-#rotate-msg .rot-icon{font-size:52px;margin-bottom:16px;animation:rotSpin 2s ease-in-out infinite;}
-#rotate-msg .rot-text{font-size:14px;letter-spacing:4px;color:#e8c060;text-align:center;line-height:1.8;}
-#rotate-msg .rot-sub{font-size:10px;letter-spacing:3px;color:#664422;margin-top:8px;}
-@keyframes rotSpin{0%{transform:rotate(0deg);}40%{transform:rotate(-90deg);}60%{transform:rotate(-90deg);}100%{transform:rotate(0deg);}}
-</style>
-<meta name="screen-orientation" content="landscape">
-<title>WEREWOLF HUNT</title>
-<link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700;900&family=Cinzel:wght@400;600&family=JetBrains+Mono&display=swap" rel="stylesheet">
-<style>
-*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;touch-action:none;user-select:none;}
-:root{--gold:#e8c060;--gold2:#b89040;--red:#ff3311;--dark:#0a0604;--border:rgba(180,120,40,0.3);}
-#rotate-warn{display:none;position:fixed;inset:0;z-index:9999;background:#000;align-items:center;justify-content:center;flex-direction:column;gap:16px;pointer-events:none;}
-body{background:#000;overflow:hidden;font-family:'Cinzel',serif;color:var(--gold);}
-/* orientation handled by JS only */
-canvas{display:block;position:fixed;top:0;left:0;}
-#darkCanvas{pointer-events:none;z-index:3;}
-#gameCanvas{z-index:2;}
-
-/* ── SCREENS ── */
-.screen{position:fixed;inset:0;z-index:100;display:flex;flex-direction:column;align-items:center;justify-content:center;}
-.screen.hide{display:none!important;}
-.screen-bg{background:radial-gradient(ellipse at 50% 40%,#1a0800 0%,#000 70%);}
-
-/* ── TITLE SCREEN ── */
-#titleScreen{gap:0;overflow:hidden;}
-.title-particles{position:absolute;inset:0;pointer-events:none;}
-.title-glow{
-  position:absolute;top:30%;left:50%;transform:translate(-50%,-50%);
-  width:400px;height:400px;border-radius:50%;
-  background:radial-gradient(circle,rgba(180,60,0,0.15),transparent 70%);
-  pointer-events:none;
-}
-.title-art{
-  font-family:'Cinzel Decorative',serif;
-  font-size:clamp(34px,9vw,80px);
-  color:var(--gold);letter-spacing:6px;
-  text-shadow:0 0 60px rgba(220,160,40,0.5),0 0 120px rgba(180,80,0,0.3);
-  text-align:center;line-height:1.05;
-  margin-bottom:6px;position:relative;z-index:1;
-  animation:titlePulse 3s ease-in-out infinite;
-}
-@keyframes titlePulse{0%,100%{text-shadow:0 0 40px rgba(220,160,40,0.4),0 0 80px rgba(180,80,0,0.2);}50%{text-shadow:0 0 80px rgba(220,160,40,0.7),0 0 160px rgba(180,80,0,0.4);}}
-.title-wolf{font-size:clamp(14px,3vw,22px);letter-spacing:12px;color:#884422;margin-bottom:40px;position:relative;z-index:1;}
-.title-divider{width:200px;height:1px;background:linear-gradient(to right,transparent,var(--border),transparent);margin-bottom:32px;}
-
-.main-btn{
-  width:260px;padding:16px 0;margin:7px;
-  background:transparent;
-  border:1px solid var(--border);
-  color:var(--gold);font-size:13px;letter-spacing:5px;
-  cursor:pointer;font-family:'Cinzel',serif;
-  text-transform:uppercase;position:relative;z-index:1;
-  transition:all 0.3s;overflow:hidden;
-}
-.main-btn::before{
-  content:'';position:absolute;inset:0;
-  background:linear-gradient(to right,transparent,rgba(220,160,40,0.07),transparent);
-  transform:translateX(-100%);transition:transform 0.5s;
-}
-.main-btn:hover::before,.main-btn:active::before{transform:translateX(100%);}
-.main-btn:hover,.main-btn:active{border-color:rgba(220,160,40,0.7);background:rgba(220,160,40,0.06);}
-.main-btn.primary{border-color:rgba(220,160,40,0.6);font-size:15px;letter-spacing:6px;padding:18px 0;}
-.main-btn.danger{border-color:rgba(200,40,20,0.4);color:#ff5533;}
-.main-btn.danger:hover{background:rgba(200,40,20,0.08);}
-
-.version-tag{position:absolute;bottom:16px;font-size:8px;letter-spacing:4px;color:#443322;}
-
-/* ── MODE SELECT SCREEN ── */
-#modeScreen{gap:0;}
-.mode-back{position:absolute;top:20px;left:20px;font-size:9px;letter-spacing:3px;color:#664422;cursor:pointer;padding:8px 14px;border:1px solid rgba(100,60,20,0.3);border-radius:20px;}
-.mode-back:hover{color:var(--gold);border-color:var(--border);}
-.mode-title{font-family:'Cinzel Decorative',serif;font-size:clamp(16px,4vw,28px);letter-spacing:6px;margin-bottom:8px;text-align:center;}
-.mode-sub{font-size:9px;letter-spacing:4px;color:#664422;margin-bottom:36px;}
-.mode-cards{display:flex;gap:16px;flex-wrap:wrap;justify-content:center;padding:0 20px;max-width:600px;}
-.mode-card{
-  flex:1;min-width:140px;max-width:200px;
-  background:rgba(255,255,255,0.025);
-  border:1px solid var(--border);border-radius:10px;
-  padding:24px 16px;text-align:center;cursor:pointer;
-  transition:all 0.3s;
-}
-.mode-card:hover,.mode-card:active{background:rgba(220,160,40,0.08);border-color:rgba(220,160,40,0.6);transform:translateY(-3px);}
-.mode-card-icon{font-size:36px;display:block;margin-bottom:12px;}
-.mode-card-title{font-size:12px;letter-spacing:3px;color:var(--gold);margin-bottom:6px;}
-.mode-card-desc{font-size:9px;letter-spacing:1px;color:#664422;line-height:1.6;}
-
-/* ── SETUP SCREEN ── */
-#setupScreen{gap:12px;}
-.setup-label{font-size:9px;letter-spacing:4px;color:#886644;margin-bottom:4px;display:block;text-align:center;}
-.setup-input{
-  width:240px;padding:13px 16px;
-  background:rgba(255,255,255,0.04);
-  border:1px solid var(--border);
-  color:var(--gold);font-size:14px;font-family:'Cinzel',serif;
-  text-align:center;outline:none;letter-spacing:2px;
-}
-.setup-input:focus{border-color:rgba(220,160,40,0.7);}
-.code-input{
-  width:180px;padding:13px 16px;
-  background:rgba(255,255,255,0.04);
-  border:1px solid var(--border);
-  color:var(--gold);font-size:26px;font-family:'JetBrains Mono',monospace;
-  text-align:center;letter-spacing:10px;outline:none;
-}
-.color-row{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;max-width:280px;}
-.color-opt{width:34px;height:34px;border-radius:50%;cursor:pointer;border:3px solid transparent;transition:all 0.2s;}
-.color-opt.sel{border-color:#fff;box-shadow:0 0 12px rgba(255,255,255,0.5);transform:scale(1.15);}
-.setup-title{font-family:'Cinzel Decorative',serif;font-size:clamp(14px,3.5vw,22px);letter-spacing:5px;margin-bottom:4px;}
-.setup-spacer{height:10px;}
-
-/* ── LOBBY ── */
-#lobbyScreen{gap:10px;}
-.lobby-code-wrap{text-align:center;margin-bottom:8px;}
-.lobby-code-label{font-size:8px;letter-spacing:5px;color:#664422;margin-bottom:4px;}
-.lobby-code{font-size:40px;letter-spacing:14px;color:var(--gold);text-shadow:0 0 20px rgba(220,160,40,0.5);font-family:'JetBrains Mono',monospace;}
-.lobby-hint{font-size:9px;letter-spacing:3px;color:#443322;margin-top:4px;}
-.lobby-list{
-  width:280px;max-height:180px;overflow-y:auto;
-  background:rgba(0,0,0,0.4);border:1px solid var(--border);
-  border-radius:6px;padding:8px;
-}
-.lobby-player{display:flex;align-items:center;gap:10px;padding:8px 6px;border-bottom:1px solid rgba(255,255,255,0.04);}
-.lobby-player:last-child{border:none;}
-.p-dot{width:12px;height:12px;border-radius:50%;flex-shrink:0;}
-.p-name{font-size:11px;letter-spacing:2px;flex:1;}
-.p-host{font-size:8px;letter-spacing:1px;color:#886644;padding:2px 7px;border:1px solid rgba(180,120,40,0.3);border-radius:10px;}
-.lobby-status{font-size:9px;letter-spacing:2px;color:#443322;text-align:center;}
-
-/* ── HUD ── */
-#hud{position:fixed;top:0;left:0;width:100%;z-index:20;pointer-events:none;}
-#topbar{
-  display:flex;justify-content:space-between;align-items:center;
-  background:linear-gradient(to bottom,rgba(0,0,0,0.95),transparent);
-  padding:10px 16px;
-}
-.hud-cell{display:flex;flex-direction:column;align-items:center;}
-.hud-lbl{font-size:7px;letter-spacing:4px;color:#7a5a2a;margin-bottom:1px;}
-.hud-val{font-size:22px;letter-spacing:2px;}
-#timer-val{color:var(--gold);text-shadow:0 0 10px rgba(220,160,40,0.6);}
-#timer-val.urgent{color:var(--red);animation:urgentPulse 0.5s infinite alternate;}
-@keyframes urgentPulse{from{opacity:1}to{opacity:0.4}}
-#phase-badge{
-  padding:5px 13px;border-radius:20px;font-size:9px;letter-spacing:3px;
-  background:rgba(180,120,0,0.2);border:1px solid var(--border);color:var(--gold);
-}
-#phase-badge.night{background:rgba(120,0,0,0.3);border-color:rgba(200,0,0,0.4);color:#ff5544;}
-#alive-val{color:#cc8844;}
-
-/* ── ROLE BANNER ── */
-#role-banner{position:fixed;top:58px;left:50%;transform:translateX(-50%);z-index:25;pointer-events:none;}
-#role-text{font-size:9px;letter-spacing:4px;padding:5px 16px;border-radius:16px;}
-#role-text.wolf{background:rgba(180,20,0,0.4);border:1px solid rgba(220,40,0,0.5);color:#ff5533;}
-#role-text.hider{background:rgba(0,50,120,0.4);border:1px solid rgba(40,100,200,0.4);color:#66aaff;}
-
-/* ── HIDE BUTTON ── */
-#hide-btn-wrap{position:fixed;bottom:155px;left:50%;transform:translateX(-50%);z-index:22;display:none;}
-#hide-btn{
-  padding:10px 28px;background:rgba(0,40,100,0.5);
-  border:1px solid rgba(40,100,200,0.6);color:#88bbff;
-  font-size:11px;letter-spacing:3px;cursor:pointer;
-  font-family:'Cinzel',serif;border-radius:20px;pointer-events:all;
-  transition:all 0.2s;
-}
-#hide-btn.hiding{background:rgba(100,40,0,0.5);border-color:rgba(200,100,40,0.6);color:#ffaa55;}
-#hide-btn:active{transform:scale(0.93);}
-
-/* ── NEARBY SPOT ── */
-#nearby-spot{
-  position:fixed;bottom:195px;left:50%;transform:translateX(-50%);
-  z-index:22;pointer-events:none;display:none;
-  background:rgba(0,0,0,0.75);border:1px solid rgba(60,140,255,0.5);
-  padding:5px 14px;border-radius:20px;
-  font-size:9px;letter-spacing:3px;color:#88bbff;
-}
-
-/* ── MINIMAP ── */
-#minimap-wrap{position:fixed;bottom:158px;right:12px;z-index:20;pointer-events:none;display:none;}
-#minimapCanvas{border:1px solid var(--border);border-radius:4px;opacity:0.82;}
-#mm-lbl{font-size:7px;letter-spacing:2px;color:#7a5a2a;text-align:center;margin-top:2px;}
-
-/* ── CONTROLS ── */
-#controls{
-  position:fixed;bottom:0;left:0;right:0;z-index:20;
-  pointer-events:none;
-  background:linear-gradient(to top,rgba(0,0,0,0.92),transparent);
-  padding:8px 14px;
-  display:none;align-items:flex-end;justify-content:space-between;
-}
-#joy-outer{position:relative;width:136px;height:136px;pointer-events:all;}
-#joy-base{position:absolute;inset:0;border-radius:50%;background:radial-gradient(circle,rgba(35,22,8,0.65),rgba(0,0,0,0.85));border:1.5px solid rgba(180,120,40,0.28);}
-#joy-ring{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:54px;height:54px;border-radius:50%;border:1px solid rgba(180,120,40,0.14);}
-#joy-knob{position:absolute;width:50px;height:50px;border-radius:50%;background:radial-gradient(circle at 35% 34%,rgba(195,150,55,0.82),rgba(65,38,8,0.96));border:1.5px solid rgba(195,150,55,0.65);box-shadow:0 4px 14px rgba(0,0,0,0.9);top:43px;left:43px;}
-#right-btns{display:flex;flex-direction:column;align-items:center;gap:6px;pointer-events:all;}
-#scan-wrap{position:relative;width:88px;height:88px;display:flex;align-items:center;justify-content:center;}
-#scanArcCanvas{position:absolute;inset:0;}
-#scan-btn{
-  width:66px;height:66px;border-radius:50%;
-  background:radial-gradient(circle at 36% 34%,rgba(145,24,0,0.88),rgba(44,0,0,0.97));
-  border:2px solid rgba(215,52,18,0.78);
-  display:flex;flex-direction:column;align-items:center;justify-content:center;
-  cursor:pointer;z-index:2;position:relative;transition:transform 0.15s;
-}
-#scan-btn:active{transform:scale(0.91);}
-#scan-btn.cd{opacity:0.45;pointer-events:none;}
-#scan-icon{font-size:20px;line-height:1;}
-#scan-lbl{font-size:7px;letter-spacing:2px;color:#ff7755;margin-top:1px;}
-#scan-area-lbl{font-size:7px;letter-spacing:3px;color:#773322;}
-
-/* ── CHAT ── */
-#chat-wrap{position:fixed;left:10px;bottom:150px;width:190px;z-index:20;pointer-events:none;display:none;}
-#chat-log{display:flex;flex-direction:column;gap:3px;max-height:80px;overflow:hidden;justify-content:flex-end;}
-.chat-msg{font-size:10px;letter-spacing:1px;padding:3px 8px;border-radius:10px;background:rgba(0,0,0,0.6);width:fit-content;max-width:100%;}
-.chat-msg.wolf{color:#ff7755;border-left:2px solid #ff3311;}
-.chat-msg.hider{color:#88bbff;border-left:2px solid #3366cc;}
-.chat-msg.system{color:#886644;font-style:italic;}
-
-/* ── ANIMATION BANNER ── */
-#anim-banner{
-  position:fixed;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;
-  pointer-events:none;z-index:50;opacity:0;transition:opacity 0.4s;
-}
-#anim-banner.show{opacity:1;}
-#ab-title{
-  font-family:'Cinzel Decorative',serif;
-  font-size:clamp(22px,5.5vw,48px);
-  letter-spacing:8px;text-shadow:0 0 30px currentColor;
-  margin-bottom:8px;text-align:center;
-}
-#ab-sub{font-size:11px;letter-spacing:4px;color:#886644;}
-
-/* ── CAUGHT OVERLAY ── */
-#caught-overlay{
-  position:fixed;inset:0;z-index:40;
-  display:none;align-items:center;justify-content:center;
-  background:rgba(180,0,0,0.2);flex-direction:column;
-  backdrop-filter:blur(2px);
-}
-#caught-overlay.show{display:flex;}
-#caught-title{font-family:'Cinzel Decorative',serif;font-size:36px;color:#ff3311;letter-spacing:6px;text-shadow:0 0 30px #ff0000;}
-#caught-sub{font-size:11px;letter-spacing:3px;color:#ff7755;margin-top:8px;}
-
-/* ── RESULT SCREEN ── */
-#resultScreen{gap:12px;}
-.result-title-el{font-family:'Cinzel Decorative',serif;font-size:clamp(22px,6vw,46px);letter-spacing:6px;text-align:center;}
-.result-stat{font-size:11px;letter-spacing:3px;color:#886644;text-align:center;max-width:280px;line-height:1.8;}
-.result-players{
-  width:280px;background:rgba(0,0,0,0.4);
-  border:1px solid var(--border);border-radius:6px;
-  padding:8px;max-height:160px;overflow-y:auto;
-}
-.rp-row{display:flex;align-items:center;gap:8px;padding:6px 4px;border-bottom:1px solid rgba(255,255,255,0.04);}
-.rp-row:last-child{border:none;}
-.rp-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
-.rp-name{font-size:10px;letter-spacing:1px;flex:1;}
-.rp-status{font-size:9px;letter-spacing:1px;}
-.rp-status.survived{color:#44cc66;}
-.rp-status.caught{color:#ff5533;}
-.rp-status.wolf{color:#ff7755;}
-
-/* ── TOAST ── */
-#toast{
-  position:fixed;top:68px;left:50%;transform:translateX(-50%);
-  background:rgba(160,15,0,0.92);color:#ffaa88;
-  padding:8px 20px;border-radius:20px;font-size:11px;letter-spacing:2px;
-  z-index:200;opacity:0;transition:opacity 0.3s;pointer-events:none;
-  white-space:nowrap;
-}
-#toast.show{opacity:1;}
-#toast.green{background:rgba(20,100,30,0.92);color:#88ffaa;}
-
-/* ── PINGS ── */
-#pings{position:fixed;inset:0;pointer-events:none;z-index:15;}
-.ping-el{
-  position:absolute;transform:translate(-50%,-50%);
-  font-size:11px;letter-spacing:2px;font-weight:600;
-  pointer-events:none;transition:opacity 0.7s,top 0.7s;
-  text-shadow:0 0 8px currentColor;
-}
-
-/* ── SP SCORE (single player) ── */
-#sp-score{
-  position:fixed;top:58px;left:50%;transform:translateX(-50%);
-  z-index:20;pointer-events:none;display:none;
-  font-size:9px;letter-spacing:3px;color:#886644;
-}
-</style>
-</head>
-<body>
-<div id="rotate-warn">
-  <div style="font-size:52px;">📱</div>
-  <div style="font-family:'Cinzel',serif;font-size:16px;letter-spacing:4px;color:#e8c060;text-align:center;">ROTATE TO LANDSCAPE</div>
-  <div style="font-size:10px;letter-spacing:3px;color:#664422;text-align:center;">THIS GAME REQUIRES<br>HORIZONTAL MODE</div>
-</div>
-<div id="rotate-msg">
-  <div class="rot-icon">📱</div>
-  <div class="rot-text">ROTATE YOUR DEVICE</div>
-  <div class="rot-sub">LANDSCAPE MODE REQUIRED</div>
-</div>
-<canvas id="gameCanvas"></canvas>
-<canvas id="darkCanvas"></canvas>
-<div id="pings"></div>
-
-<!-- ═══ TITLE SCREEN ═══ -->
-<div class="screen screen-bg" id="titleScreen">
-  <div class="title-glow"></div>
-  <canvas class="title-particles" id="particleCanvas"></canvas>
-  <div class="title-art">WEREWOLF<br>HUNT</div>
-  <div class="title-wolf">⚔ HUNT OR BE HUNTED ⚔</div>
-  <div class="title-divider"></div>
-  <button class="main-btn primary" onclick="gotoMode()">▶ &nbsp; PLAY</button>
-  <button class="main-btn" onclick="showHowToPlay()">HOW TO PLAY</button>
-  <div class="version-tag">V 1.0.0 &nbsp;·&nbsp; WEREWOLF HUNT</div>
-</div>
-
-<!-- ═══ MODE SELECT ═══ -->
-<div class="screen screen-bg hide" id="modeScreen">
-  <div class="mode-back" onclick="showScreen('titleScreen')">← BACK</div>
-  <div class="mode-title">SELECT MODE</div>
-  <div class="mode-sub">CHOOSE YOUR HUNT</div>
-  <div class="mode-cards">
-    <div class="mode-card" onclick="startSinglePlayer()">
-      <span class="mode-card-icon">🐺</span>
-      <div class="mode-card-title">SINGLE PLAYER</div>
-      <div class="mode-card-desc">Hunt AI survivors across the dark compound. No server needed.</div>
-    </div>
-    <div class="mode-card" onclick="gotoMultiplayer()">
-      <span class="mode-card-icon">👥</span>
-      <div class="mode-card-title">MULTIPLAYER</div>
-      <div class="mode-card-desc">Play with real players online. Create or join a room with a code.</div>
-    </div>
-  </div>
-</div>
-
-<!-- ═══ HOW TO PLAY ═══ -->
-<div class="screen screen-bg hide" id="howScreen">
-  <div class="mode-back" onclick="showScreen('titleScreen')">← BACK</div>
-  <div class="mode-title" style="margin-bottom:6px;">HOW TO PLAY</div>
-  <div style="max-width:320px;display:flex;flex-direction:column;gap:12px;padding:0 16px;">
-    <div style="background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:8px;padding:14px 16px;">
-      <div style="font-size:10px;letter-spacing:3px;color:#ff7755;margin-bottom:6px;">🐺 WEREWOLF</div>
-      <div style="font-size:11px;color:#886644;line-height:1.8;letter-spacing:1px;">Catch all hiders before the timer runs out. Use the SCAN button to detect nearby prey. After 20 seconds the lights go out — your vision is much better in darkness.</div>
-    </div>
-    <div style="background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:8px;padding:14px 16px;">
-      <div style="font-size:10px;letter-spacing:3px;color:#66aaff;margin-bottom:6px;">🏃 HIDER</div>
-      <div style="font-size:11px;color:#886644;line-height:1.8;letter-spacing:1px;">Survive until the timer ends. Walk near glowing blue circles to find hiding spots. Press HIDE to become invisible. Avoid the werewolf — especially in the dark.</div>
-    </div>
-    <div style="background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:8px;padding:14px 16px;">
-      <div style="font-size:10px;letter-spacing:3px;color:var(--gold);margin-bottom:6px;">🕹 CONTROLS</div>
-      <div style="font-size:11px;color:#886644;line-height:1.8;letter-spacing:1px;">Left joystick to move · SCAN button (wolf only) · HIDE button (hiders) · WASD keys on desktop · Space = scan</div>
-    </div>
-  </div>
-  <button class="main-btn" style="margin-top:20px;width:200px;" onclick="showScreen('titleScreen')">GOT IT</button>
-</div>
-
-<!-- ═══ MULTIPLAYER SCREEN ═══ -->
-<div class="screen screen-bg hide" id="multiScreen">
-  <div class="mode-back" onclick="showScreen('modeScreen')">← BACK</div>
-  <div class="mode-title" style="margin-bottom:6px;">MULTIPLAYER</div>
-  <div class="mode-sub">ONLINE CO-OP HORROR</div>
-  <div class="mode-cards">
-    <div class="mode-card" onclick="gotoSetup('create')">
-      <span class="mode-card-icon">🏠</span>
-      <div class="mode-card-title">CREATE ROOM</div>
-      <div class="mode-card-desc">Host a new game. Share the room code with friends.</div>
-    </div>
-    <div class="mode-card" onclick="gotoSetup('join')">
-      <span class="mode-card-icon">🚪</span>
-      <div class="mode-card-title">JOIN ROOM</div>
-      <div class="mode-card-desc">Enter a 4-letter code to join a friend's game.</div>
-    </div>
-  </div>
-  <div style="margin-top:20px;background:rgba(180,120,0,0.1);border:1px solid var(--border);border-radius:8px;padding:12px 20px;max-width:320px;text-align:center;">
-    <div style="font-size:9px;letter-spacing:3px;color:var(--gold2);margin-bottom:6px;">SERVER REQUIRED</div>
-    <div style="font-size:10px;color:#664422;line-height:1.7;letter-spacing:1px;">Multiplayer needs the server running. See the deployment guide for setup instructions.</div>
-  </div>
-</div>
-
-<!-- ═══ SETUP SCREEN ═══ -->
-<div class="screen screen-bg hide" id="setupScreen">
-  <div class="mode-back" id="setup-back-btn">← BACK</div>
-  <div id="setup-inner"></div>
-</div>
-
-<!-- ═══ LOBBY ═══ -->
-<div class="screen screen-bg hide" id="lobbyScreen">
-  <div class="lobby-code-wrap">
-    <div class="lobby-code-label">ROOM CODE — SHARE WITH FRIENDS</div>
-    <div class="lobby-code" id="lobby-code">????</div>
-    <div class="lobby-hint">UP TO 6 PLAYERS</div>
-  </div>
-  <div class="lobby-list" id="lobby-list"></div>
-  <div class="lobby-status" id="lobby-status">Waiting for players...</div>
-  <button class="main-btn" id="start-btn" onclick="requestStart()" style="display:none;margin-top:10px;width:220px;">BEGIN THE HUNT</button>
-  <button class="main-btn danger" onclick="leaveGame()" style="margin-top:6px;width:220px;">LEAVE ROOM</button>
-</div>
-
-<!-- ═══ RESULT ═══ -->
-<div class="screen screen-bg hide" id="resultScreen">
-  <div class="result-title-el" id="result-title-el">HUNT ENDS</div>
-  <div class="result-stat" id="result-stat-el"></div>
-  <div class="result-players" id="result-players-el"></div>
-  <button class="main-btn" onclick="backToTitle()" style="margin-top:16px;width:220px;">MAIN MENU</button>
-  <button class="main-btn" onclick="playAgain()" style="width:220px;">PLAY AGAIN</button>
-</div>
-
-<!-- ═══ HUD ═══ -->
-<div id="hud" style="display:none;">
-  <div id="topbar">
-    <div class="hud-cell"><div class="hud-lbl">TIME</div><div class="hud-val" id="timer-val">02:00</div></div>
-    <div id="phase-badge">DAYLIGHT</div>
-    <div class="hud-cell"><div class="hud-lbl">ALIVE</div><div class="hud-val" id="alive-val">?</div></div>
-  </div>
-</div>
-<div id="role-banner" style="display:none;"><div id="role-text">HIDER</div></div>
-<div id="sp-score"></div>
-<div id="nearby-spot">HIDING SPOT NEARBY</div>
-<div id="hide-btn-wrap"><button id="hide-btn" onclick="toggleHide()">HIDE HERE</button></div>
-<div id="minimap-wrap"><canvas id="minimapCanvas" width="100" height="82"></canvas><div id="mm-lbl">MAP</div></div>
-<div id="chat-wrap"><div id="chat-log"></div></div>
-<div id="controls">
-  <div id="joy-outer">
-    <div id="joy-base"><div id="joy-ring"></div></div>
-    <div id="joy-knob"></div>
-  </div>
-  <div id="right-btns">
-    <div id="scan-wrap">
-      <canvas id="scanArcCanvas" width="88" height="88"></canvas>
-      <div id="scan-btn" onclick="doScan()"><span id="scan-icon">🔴</span><span id="scan-lbl">SCAN</span></div>
-    </div>
-    <div id="scan-area-lbl">SCANNER</div>
-  </div>
-</div>
-<div id="anim-banner"><div id="ab-title">LIGHTS OUT</div><div id="ab-sub">DARKNESS FALLS</div></div>
-<div id="caught-overlay"><div id="caught-title">YOU WERE CAUGHT</div><div id="caught-sub">SPECTATING...</div></div>
-<div id="toast"></div>
-
-<script>
-'use strict';
-// ═══════════════════════════════════════════════════
-//  CANVAS SETUP
-// ═══════════════════════════════════════════════════
-const gC=document.getElementById('gameCanvas'),gX=gC.getContext('2d');
-const dC=document.getElementById('darkCanvas'),dX=dC.getContext('2d');
-const mmC=document.getElementById('minimapCanvas'),mmX=mmC.getContext('2d');
-const arcC=document.getElementById('scanArcCanvas'),arcX=arcC.getContext('2d');
-let W,H;
-function resize(){
-  W=gC.width=dC.width=window.innerWidth;
-  H=gC.height=dC.height=window.innerHeight;
-}
-resize();
-window.addEventListener('resize',resize);
-
-// ═══════════════════════════════════════════════════
-//  TITLE PARTICLES
-// ═══════════════════════════════════════════════════
-const pCvs=document.getElementById('particleCanvas');
-const pCtx=pCvs.getContext('2d');
-const particles=[];
-function initParticles(){
-  pCvs.width=window.innerWidth;pCvs.height=window.innerHeight;
-  particles.length=0;
-  for(let i=0;i<60;i++) particles.push({
-    x:Math.random()*pCvs.width,y:Math.random()*pCvs.height,
-    vx:(Math.random()-0.5)*0.4,vy:-0.2-Math.random()*0.5,
-    life:Math.random(),maxLife:0.5+Math.random()*0.5,
-    r:0.5+Math.random()*1.5,
-    hue:Math.random()>0.5?30:10
-  });
-}
-function animParticles(){
-  if(document.getElementById('titleScreen').classList.contains('hide')){
-    pCtx.clearRect(0,0,pCvs.width,pCvs.height);
-    requestAnimationFrame(animParticles);return;
-  }
-  pCtx.clearRect(0,0,pCvs.width,pCvs.height);
-  for(const p of particles){
-    p.x+=p.vx;p.y+=p.vy;p.life-=0.004;
-    if(p.life<=0){p.life=p.maxLife;p.x=Math.random()*pCvs.width;p.y=pCvs.height+10;}
-    const a=p.life/p.maxLife;
-    pCtx.fillStyle=`hsla(${p.hue},80%,60%,${a*0.6})`;
-    pCtx.beginPath();pCtx.arc(p.x,p.y,p.r,0,Math.PI*2);pCtx.fill();
-  }
-  requestAnimationFrame(animParticles);
-}
-initParticles();animParticles();
-
-// ═══════════════════════════════════════════════════
-//  CONSTANTS
-// ═══════════════════════════════════════════════════
-const T=48,MW=44,MH=34;
-const W_=0,FL=1,WD=2,ST=3,CP=4,GR=5;
-const SCAN_RADIUS=240,SCAN_CD=10,LIGHT_CUT=20,GAME_TIME=120;
-const WOLF_CATCH_R=26,HIDE_DETECT_R=58;
-
-// ═══════════════════════════════════════════════════
-//  MAP
-// ═══════════════════════════════════════════════════
-const ROOMS_DEF=[[1,1,14,9,WD],[17,1,10,7,CP],[29,1,12,9,FL],[1,12,10,10,ST],[13,12,13,9,WD],[28,12,15,9,CP],[1,23,16,9,FL],[19,23,24,9,GR]];
-const CORR_DEF=[[14,5,17,5],[26,5,29,5],[10,6,10,12],[24,7,24,12],[37,9,37,12],[10,20,10,23],[22,20,22,23],[28,20,28,23],[15,27,19,27],[16,16,16,20],[26,16,28,16],[38,12,38,20]];
-let mapData=null;
-function buildMap(){
-  const m=[];
-  for(let y=0;y<MH;y++){m[y]=[];for(let x=0;x<MW;x++)m[y][x]=W_;}
-  for(const[rx,ry,rw,rh,ft]of ROOMS_DEF)
-    for(let y=ry;y<ry+rh&&y<MH;y++)
-      for(let x=rx;x<rx+rw&&x<MW;x++)m[y][x]=ft;
-  for(const[x1,y1,x2,y2]of CORR_DEF){
-    let cx=x1,cy=y1;
-    while(cx!==x2||cy!==y2){if(cx<MW&&cy<MH)m[cy][cx]=ST;if(cx<x2)cx++;else if(cx>x2)cx--;if(cy<y2)cy++;else if(cy>y2)cy--;}
-    if(x2<MW&&y2<MH)m[y2][x2]=ST;
-  }
-  return m;
-}
-function walkable(wx,wy){
-  const tx=Math.floor(wx/T),ty=Math.floor(wy/T);
-  if(tx<0||ty<0||tx>=MW||ty>=MH)return false;
-  return mapData[ty][tx]!==W_;
-}
-
-// ═══════════════════════════════════════════════════
-//  HIDING SPOTS
-// ═══════════════════════════════════════════════════
-const HIDE_SPOTS=[
-  {id:'h0',x:3.5,y:2.5,label:'Under Table'},{id:'h1',x:7.5,y:5.5,label:'Behind Pillar'},
-  {id:'h2',x:12.5,y:2.5,label:'Behind Pillar'},{id:'h3',x:18.5,y:2.5,label:'Behind Shelves'},
-  {id:'h4',x:24.5,y:3.5,label:'Under Desk'},{id:'h5',x:31.5,y:2.5,label:'Behind Barrels'},
-  {id:'h6',x:34.5,y:5.5,label:'Inside Crate'},{id:'h7',x:14.5,y:14.5,label:'Under Bed'},
-  {id:'h8',x:19.5,y:14.5,label:'Under Bed'},{id:'h9',x:29.5,y:14.5,label:'Behind Sarcophagus'},
-  {id:'h10',x:33.5,y:14.5,label:'Behind Sarcophagus'},{id:'h11',x:36.5,y:17.5,label:'Behind Altar'},
-  {id:'h12',x:3.5,y:15.5,label:'Behind Pillar'},{id:'h13',x:8.5,y:15.5,label:'Behind Pillar'},
-  {id:'h14',x:5.5,y:18.5,label:'Behind Fountain'},{id:'h15',x:3.5,y:25.5,label:'Behind Barrels'},
-  {id:'h16',x:10.5,y:26.5,label:'Inside Crate'},{id:'h17',x:21.5,y:25.5,label:'Behind Tree'},
-  {id:'h18',x:27.5,y:25.5,label:'Behind Tree'},{id:'h19',x:33.5,y:27.5,label:'In Bushes'},
-  {id:'h20',x:38.5,y:25.5,label:'Behind Tree'},
-].map(s=>({...s,x:s.x*T,y:s.y*T,occ:0,cap:2}));
-
-// ═══════════════════════════════════════════════════
-//  TILE RENDERER
-// ═══════════════════════════════════════════════════
-function sr(x,y){return(((x*374761393+y*668265263)^((x*668265263)>>13))&0xFFFF)/65535;}
-const tileCache={};
-function getTile(type,tx,ty){
-  const k=`${type}_${tx%6}_${ty%6}`;if(tileCache[k])return tileCache[k];
-  const c=document.createElement('canvas');c.width=c.height=T;const t=c.getContext('2d');const n=sr(tx,ty);
-  if(type===W_){t.fillStyle=`hsl(220,8%,${11+n*5}%)`;t.fillRect(0,0,T,T);const row=ty%2;t.fillStyle=`hsl(215,7%,${9+n*4}%)`;t.fillRect(1,1,T-2,T/2-1);t.fillStyle=`hsl(225,7%,${10+n*4}%)`;t.fillRect(1,T/2,T-2,T/2-1);if(row===0){t.strokeStyle='rgba(0,0,0,0.4)';t.lineWidth=1;t.strokeRect(0,T/2,T/2,T/2);}t.strokeStyle='rgba(0,0,0,0.5)';t.lineWidth=1;t.strokeRect(0,0,T,T);t.fillStyle='rgba(255,255,255,0.04)';t.fillRect(0,0,T,2);if(n>0.72){t.fillStyle='rgba(0,80,20,0.18)';t.fillRect(0,T-10,T*n,10);}if(n>0.6){t.strokeStyle='rgba(0,0,0,0.3)';t.lineWidth=0.5;t.beginPath();t.moveTo(n*T,4);t.lineTo(n*T+6,T-6);t.stroke();}}
-  else if(type===FL){const v=42+n*14;t.fillStyle=`hsl(30,5%,${v}%)`;t.fillRect(0,0,T,T);t.strokeStyle='rgba(0,0,0,0.3)';t.lineWidth=1;t.strokeRect(2,2,T-4,T-4);if(n>0.55){t.strokeStyle='rgba(0,0,0,0.18)';t.lineWidth=0.5;t.beginPath();t.moveTo(5,T/2+sr(tx*2,ty)*8);t.lineTo(T-7,T/2-sr(tx,ty*2)*6);t.stroke();}t.fillStyle='rgba(255,255,255,0.055)';t.fillRect(3,3,T/2-5,3);}
-  else if(type===WD){const v=28+n*13;t.fillStyle=`hsl(27,42%,${v}%)`;t.fillRect(0,0,T,T);for(let i=0;i<7;i++){t.strokeStyle=`rgba(0,0,0,${0.07+sr(tx+i,ty)*0.07})`;t.lineWidth=1;t.beginPath();t.moveTo(0,i*(T/7)+sr(tx,ty+i)*3);t.lineTo(T,i*(T/7)+sr(tx+1,ty+i)*3);t.stroke();}if(tx%3===0){t.strokeStyle='rgba(0,0,0,0.25)';t.lineWidth=2;t.beginPath();t.moveTo(0,0);t.lineTo(0,T);t.stroke();}t.fillStyle='rgba(255,190,70,0.05)';t.fillRect(0,0,T,2);}
-  else if(type===ST){const v=36+n*12;t.fillStyle=`hsl(28,10%,${v}%)`;t.fillRect(0,0,T,T);for(let i=0;i<4;i++)for(let j=0;j<4;j++){const rv=38+sr(tx+i,ty+j)*14;const cx2=i*12+sr(tx+i,ty+j)*3+3,cy2=j*12+sr(tx+j,ty+i)*3+3;t.fillStyle=`hsl(25,8%,${rv}%)`;t.beginPath();t.roundRect(cx2,cy2,9,9,2);t.fill();t.strokeStyle='rgba(0,0,0,0.22)';t.lineWidth=0.5;t.stroke();}}
-  else if(type===CP){const v=22+n*7;t.fillStyle=`hsl(348,56%,${v}%)`;t.fillRect(0,0,T,T);t.strokeStyle='rgba(0,0,0,0.18)';t.lineWidth=1;for(let i=4;i<T;i+=8){t.beginPath();t.moveTo(i,0);t.lineTo(i,T);t.stroke();t.beginPath();t.moveTo(0,i);t.lineTo(T,i);t.stroke();}t.strokeStyle='rgba(175,115,35,0.22)';t.lineWidth=1;t.beginPath();t.moveTo(T/2,4);t.lineTo(T-4,T/2);t.lineTo(T/2,T-4);t.lineTo(4,T/2);t.closePath();t.stroke();t.fillStyle='rgba(255,255,255,0.03)';t.fillRect(0,0,T,2);}
-  else if(type===GR){const v=20+n*10;t.fillStyle=`hsl(95,30%,${v}%)`;t.fillRect(0,0,T,T);for(let i=0;i<9;i++){const gx2=sr(tx+i,ty)*T,gy2=sr(tx,ty+i)*T;t.fillStyle=`hsl(${100+n*25},34%,${22+n*8}%)`;t.fillRect(gx2,gy2,2,3+sr(tx+i,ty+i)*4);}if(n>0.5){t.fillStyle='rgba(80,65,45,0.5)';t.beginPath();t.arc(sr(tx*3,ty)*(T-6)+3,sr(tx,ty*3)*(T-6)+3,2,0,Math.PI*2);t.fill();}}
-  tileCache[k]=c;return c;
-}
-
-// ═══════════════════════════════════════════════════
-//  PROPS
-// ═══════════════════════════════════════════════════
-const PROPS=[{tx:3,ty:2,t:'table_l'},{tx:5,ty:2,t:'table_l'},{tx:7,ty:2,t:'table_l'},{tx:3,ty:5,t:'chair'},{tx:6,ty:5,t:'chair'},{tx:9,ty:5,t:'chair'},{tx:2,ty:2,t:'pillar'},{tx:12,ty:2,t:'pillar'},{tx:2,ty:8,t:'pillar'},{tx:12,ty:8,t:'pillar'},{tx:7,ty:7,t:'fireplace'},{tx:17,ty:2,t:'shelf'},{tx:18,ty:2,t:'shelf'},{tx:19,ty:2,t:'shelf'},{tx:20,ty:2,t:'shelf'},{tx:21,ty:2,t:'shelf'},{tx:22,ty:2,t:'shelf'},{tx:17,ty:4,t:'shelf'},{tx:18,ty:4,t:'shelf'},{tx:19,ty:4,t:'shelf'},{tx:20,ty:4,t:'shelf'},{tx:24,ty:3,t:'desk'},{tx:25,ty:5,t:'chair'},{tx:29,ty:2,t:'barrel'},{tx:30,ty:2,t:'barrel'},{tx:31,ty:2,t:'barrel'},{tx:32,ty:2,t:'barrel'},{tx:29,ty:5,t:'crate'},{tx:31,ty:5,t:'crate'},{tx:33,ty:4,t:'crate'},{tx:36,ty:3,t:'barrel'},{tx:14,ty:13,t:'bed'},{tx:16,ty:13,t:'bed'},{tx:19,ty:13,t:'bed'},{tx:14,ty:18,t:'bed'},{tx:17,ty:18,t:'bed'},{tx:21,ty:15,t:'table_s'},{tx:29,ty:13,t:'sarc'},{tx:31,ty:13,t:'sarc'},{tx:33,ty:13,t:'sarc'},{tx:29,ty:18,t:'sarc'},{tx:32,ty:18,t:'sarc'},{tx:36,ty:15,t:'altar'},{tx:3,ty:14,t:'pillar'},{tx:8,ty:14,t:'pillar'},{tx:3,ty:20,t:'pillar'},{tx:8,ty:20,t:'pillar'},{tx:5,ty:17,t:'fountain'},{tx:2,ty:25,t:'barrel'},{tx:4,ty:25,t:'crate'},{tx:7,ty:26,t:'barrel'},{tx:10,ty:24,t:'crate'},{tx:20,ty:25,t:'tree'},{tx:23,ty:27,t:'tree'},{tx:27,ty:25,t:'tree'},{tx:31,ty:26,t:'tree'},{tx:35,ty:24,t:'tree'},{tx:38,ty:27,t:'tree'},{tx:22,ty:28,t:'bush'},{tx:25,ty:26,t:'bush'},{tx:29,ty:28,t:'bush'},{tx:33,ty:25,t:'bush'},{tx:37,ty:26,t:'bush'}];
-
-function drawProp(p,cx,cy){
-  const sx=p.tx*T-cx+T/2,sy=p.ty*T-cy+T/2;
-  if(sx<-T*2||sx>W+T*2||sy<-T*2||sy>H+T*2)return;
-  const FT=performance.now()/1000;
-  gX.save();gX.translate(sx,sy);const t=p.t;
-  if(t==='pillar'){gX.fillStyle='#484038';gX.beginPath();gX.arc(0,0,11,0,Math.PI*2);gX.fill();gX.fillStyle='#645850';gX.beginPath();gX.arc(-2,-2,9,0,Math.PI*2);gX.fill();}
-  else if(t==='table_l'){gX.fillStyle='#503318';gX.fillRect(-22,-9,44,18);gX.fillStyle='rgba(255,195,75,0.12)';gX.fillRect(-22,-9,44,5);gX.strokeStyle='rgba(0,0,0,0.45)';gX.lineWidth=1;gX.strokeRect(-22,-9,44,18);}
-  else if(t==='table_s'){gX.fillStyle='#503318';gX.fillRect(-14,-10,28,20);gX.strokeStyle='rgba(0,0,0,0.4)';gX.lineWidth=1;gX.strokeRect(-14,-10,28,20);}
-  else if(t==='chair'){gX.fillStyle='#382010';gX.fillRect(-8,-9,16,14);gX.fillStyle='#482a18';gX.fillRect(-8,-16,16,9);}
-  else if(t==='shelf'){gX.fillStyle='#381e0c';gX.fillRect(-20,-17,40,34);for(let i=0;i<7;i++){gX.fillStyle=`hsl(${i*42+10},62%,33%)`;gX.fillRect(-18+i*6,-15,5,28);}gX.fillStyle='rgba(0,0,0,0.3)';gX.fillRect(-20,-17,40,4);}
-  else if(t==='desk'){gX.fillStyle='#4a2c12';gX.fillRect(-18,-12,36,24);gX.fillStyle='rgba(215,205,175,0.7)';gX.fillRect(-10,-8,14,12);gX.fillRect(-2,-10,10,9);}
-  else if(t==='bed'){gX.fillStyle='#381e0a';gX.fillRect(-20,-15,40,30);gX.fillStyle='#62707a';gX.fillRect(-18,-13,36,24);gX.fillStyle='rgba(255,255,255,0.18)';gX.fillRect(-14,-2,28,10);gX.fillStyle='#483025';gX.fillRect(-20,-20,40,8);}
-  else if(t==='barrel'){gX.fillStyle='#482e0c';gX.beginPath();gX.ellipse(0,0,12,17,0,0,Math.PI*2);gX.fill();gX.strokeStyle='rgba(100,65,18,0.85)';gX.lineWidth=2;gX.beginPath();gX.ellipse(0,-5,11,4,0,0,Math.PI*2);gX.stroke();gX.beginPath();gX.ellipse(0,5,11,4,0,0,Math.PI*2);gX.stroke();}
-  else if(t==='crate'){gX.fillStyle='#584018';gX.fillRect(-17,-15,34,30);gX.strokeStyle='rgba(0,0,0,0.45)';gX.lineWidth=1.5;gX.strokeRect(-17,-15,34,30);gX.beginPath();gX.moveTo(-17,-15);gX.lineTo(17,15);gX.moveTo(17,-15);gX.lineTo(-17,15);gX.stroke();}
-  else if(t==='sarc'){gX.fillStyle='#555048';gX.fillRect(-19,-11,38,22);gX.fillStyle='#6e6860';gX.fillRect(-17,-9,34,18);gX.strokeStyle='rgba(95,85,75,0.85)';gX.lineWidth=1;gX.strokeRect(-19,-11,38,22);}
-  else if(t==='altar'){gX.fillStyle='#352830';gX.fillRect(-23,-15,46,30);gX.fillStyle='#581e1e';gX.fillRect(-19,-10,38,20);const fl=Math.sin(FT)*0.2+0.75;gX.fillStyle='#ddd5b5';gX.fillRect(-15,-22,6,9);gX.fillRect(9,-22,6,9);gX.fillStyle=`rgba(255,100,0,${fl*0.9})`;gX.beginPath();gX.arc(-12,-24,4,0,Math.PI*2);gX.fill();gX.beginPath();gX.arc(12,-24,4,0,Math.PI*2);gX.fill();}
-  else if(t==='fireplace'){gX.fillStyle='#383028';gX.fillRect(-25,-15,50,30);gX.fillStyle='#181208';gX.fillRect(-19,-11,38,24);const fl2=Math.sin(FT*1.4)*0.18+0.72;gX.fillStyle=`rgba(255,${75+Math.sin(FT*1.6)*22},0,${fl2})`;gX.beginPath();gX.ellipse(0,4,13,9,0,0,Math.PI*2);gX.fill();gX.fillStyle=`rgba(255,175,0,${fl2*0.8})`;gX.beginPath();gX.ellipse(-2,0,9,11,0,0,Math.PI*2);gX.fill();}
-  else if(t==='fountain'){gX.fillStyle='#605a55';gX.beginPath();gX.arc(0,0,19,0,Math.PI*2);gX.fill();gX.fillStyle='#354a65';gX.beginPath();gX.arc(0,0,15,0,Math.PI*2);gX.fill();const pulse=Math.sin(FT*2)*0.3+0.5;gX.strokeStyle=`rgba(90,145,210,${pulse})`;gX.lineWidth=1;gX.beginPath();gX.arc(0,0,9,0,Math.PI*2);gX.stroke();}
-  else if(t==='tree'){gX.fillStyle='rgba(0,0,0,0.28)';gX.beginPath();gX.ellipse(5,15,17,8,0,0,Math.PI*2);gX.fill();gX.fillStyle='#3a2808';gX.fillRect(-6,4,12,18);gX.fillStyle='#1e4a18';gX.beginPath();gX.arc(0,-4,22,0,Math.PI*2);gX.fill();gX.fillStyle='#285a20';gX.beginPath();gX.arc(-3,-9,17,0,Math.PI*2);gX.fill();}
-  else if(t==='bush'){gX.fillStyle='rgba(0,0,0,0.18)';gX.beginPath();gX.ellipse(4,11,15,6,0,0,Math.PI*2);gX.fill();gX.fillStyle='#244018';gX.beginPath();gX.arc(0,0,15,0,Math.PI*2);gX.fill();gX.fillStyle='#345220';gX.beginPath();gX.arc(-4,-3,11,0,Math.PI*2);gX.fill();}
-  gX.restore();
-}
-
-// ═══════════════════════════════════════════════════
-//  CHARACTER DRAWING
-// ═══════════════════════════════════════════════════
-function drawWerewolf(x,y,anim,FT){
-  const bob=anim==='walk'?Math.sin(FT*10)*2.5:0;
-  const sw=anim==='walk'?Math.sin(FT*10)*3:0;
-  gX.save();gX.translate(x,y+bob);
-  gX.fillStyle='rgba(0,0,0,0.38)';gX.beginPath();gX.ellipse(3,17,15,5,0,0,Math.PI*2);gX.fill();
-  gX.fillStyle='#160608';gX.beginPath();gX.moveTo(-14+sw,19);gX.quadraticCurveTo(-18,6,0,4);gX.quadraticCurveTo(18,6,14-sw,19);gX.quadraticCurveTo(0,24,sw,19);gX.fill();
-  gX.fillStyle='#1c080a';gX.beginPath();gX.ellipse(0,4,13,16,0,0,Math.PI*2);gX.fill();
-  gX.fillStyle='#250e0a';gX.beginPath();gX.ellipse(-11,-2,9,6,0.2,0,Math.PI*2);gX.fill();gX.beginPath();gX.ellipse(11,-2,9,6,-0.2,0,Math.PI*2);gX.fill();
-  const armSw=anim==='walk'?Math.sin(FT*10)*12:0;
-  gX.fillStyle='#1a0a04';
-  gX.save();gX.translate(-16,4);gX.rotate(armSw*Math.PI/180);gX.beginPath();gX.ellipse(0,0,5,9,0,0,Math.PI*2);gX.fill();gX.fillStyle='#0e0606';gX.beginPath();gX.arc(0,9,4,0,Math.PI*2);gX.fill();gX.restore();
-  gX.save();gX.translate(16,4);gX.rotate(-armSw*Math.PI/180);gX.fillStyle='#1a0a04';gX.beginPath();gX.ellipse(0,0,5,9,0,0,Math.PI*2);gX.fill();gX.fillStyle='#0e0606';gX.beginPath();gX.arc(0,9,4,0,Math.PI*2);gX.fill();gX.restore();
-  const legSw=anim==='walk'?Math.sin(FT*10)*10:0;
-  gX.fillStyle='#180808';
-  gX.save();gX.translate(-6,14);gX.rotate(legSw*Math.PI/180);gX.beginPath();gX.ellipse(0,0,4,8,0,0,Math.PI*2);gX.fill();gX.restore();
-  gX.save();gX.translate(6,14);gX.rotate(-legSw*Math.PI/180);gX.beginPath();gX.ellipse(0,0,4,8,0,0,Math.PI*2);gX.fill();gX.restore();
-  gX.fillStyle='#261005';gX.beginPath();gX.arc(0,-12,14,0,Math.PI*2);gX.fill();
-  gX.fillStyle='#381608';gX.beginPath();gX.ellipse(0,-5,8,10,0,0,Math.PI*2);gX.fill();
-  gX.fillStyle='#180800';gX.beginPath();gX.moveTo(-8,-20);gX.lineTo(-16,-36);gX.lineTo(0,-22);gX.closePath();gX.fill();gX.beginPath();gX.moveTo(8,-20);gX.lineTo(16,-36);gX.lineTo(0,-22);gX.closePath();gX.fill();
-  gX.fillStyle='rgba(115,18,8,0.55)';gX.beginPath();gX.moveTo(-7,-21);gX.lineTo(-12,-31);gX.lineTo(-1,-22);gX.closePath();gX.fill();gX.beginPath();gX.moveTo(7,-21);gX.lineTo(12,-31);gX.lineTo(1,-22);gX.closePath();gX.fill();
-  const ep=0.7+Math.sin(FT*3)*0.3;gX.shadowBlur=18*ep;gX.shadowColor='#ff1000';gX.fillStyle='#ff0e00';
-  gX.beginPath();gX.ellipse(-5,-14,4,2.8,0.12,0,Math.PI*2);gX.fill();gX.beginPath();gX.ellipse(5,-14,4,2.8,-0.12,0,Math.PI*2);gX.fill();gX.shadowBlur=0;
-  gX.fillStyle='#0e0404';gX.beginPath();gX.arc(0,-7,3,0,Math.PI*2);gX.fill();
-  gX.restore();
-}
-
-const PALS=[{sk:'#e8c8a0',cl:'#1a3a6a',hr:'#2a1a0a'},{sk:'#c8a060',cl:'#3a1a1a',hr:'#0a0806'},{sk:'#a07040',cl:'#1a4a2a',hr:'#1a0a04'},{sk:'#e0b090',cl:'#4a3a1a',hr:'#5a3010'},{sk:'#d09060',cl:'#2a2a4a',hr:'#3a2010'}];
-function drawHider(x,y,palIdx,anim,caught,hiding,FT,isSelf){
-  const bob=anim==='walk'?Math.sin(FT*12)*2:0;
-  const p=PALS[palIdx%PALS.length];
-  gX.save();gX.translate(x,y+bob);
-  if(caught)gX.globalAlpha=0.3;else if(hiding)gX.globalAlpha=0.4;
-  gX.fillStyle='rgba(0,0,0,0.28)';gX.beginPath();gX.ellipse(2,14,10,4,0,0,Math.PI*2);gX.fill();
-  const lgSw=anim==='walk'?Math.sin(FT*12)*9:0;
-  gX.fillStyle=p.cl;
-  gX.save();gX.translate(-6,6);gX.rotate(lgSw*Math.PI/180);gX.fillRect(-4,0,7,13);gX.restore();
-  gX.save();gX.translate(6,6);gX.rotate(-lgSw*Math.PI/180);gX.fillRect(-3,0,7,13);gX.restore();
-  gX.fillStyle=p.cl;gX.beginPath();gX.roundRect(-9,-8,18,14,3);gX.fill();
-  const armSw2=anim==='walk'?Math.sin(FT*12)*14:0;
-  gX.save();gX.translate(-12,-4);gX.rotate(-armSw2*Math.PI/180);gX.fillRect(-3,0,6,10);gX.fillStyle=p.sk;gX.beginPath();gX.arc(0,12,3,0,Math.PI*2);gX.fill();gX.restore();
-  gX.save();gX.translate(12,-4);gX.rotate(armSw2*Math.PI/180);gX.fillStyle=p.cl;gX.fillRect(-3,0,6,10);gX.fillStyle=p.sk;gX.beginPath();gX.arc(0,12,3,0,Math.PI*2);gX.fill();gX.restore();
-  gX.fillStyle=p.sk;gX.fillRect(-4,-11,8,5);gX.beginPath();gX.arc(0,-19,10,0,Math.PI*2);gX.fill();
-  gX.fillStyle=p.hr;gX.beginPath();gX.arc(0,-21,10,Math.PI,Math.PI*2);gX.fill();gX.fillRect(-10,-22,20,5);
-  gX.fillStyle='#181210';gX.beginPath();gX.arc(-3.5,-19,2,0,Math.PI*2);gX.fill();gX.beginPath();gX.arc(3.5,-19,2,0,Math.PI*2);gX.fill();
-  if(isSelf){gX.globalAlpha=1;gX.fillStyle='rgba(0,0,0,0.6)';gX.beginPath();gX.roundRect(-18,-36,36,11,4);gX.fill();gX.fillStyle='#88aaff';gX.font='bold 8px Cinzel';gX.textAlign='center';gX.fillText('YOU',0,-27);}
-  gX.restore();
-}
-
-// ═══════════════════════════════════════════════════
-//  SINGLE PLAYER AI
-// ═══════════════════════════════════════════════════
-class AIHider{
-  constructor(x,y,id){this.x=x;this.y=y;this.id=id;this.r=10;this.caught=false;this.hiding=false;this.hideSpot=null;this.state='wander';this.vx=0;this.vy=0;this.wt=0;this.wdx=0;this.wdy=0;this.anim='idle';}
-  update(dt,px,py,phase){
-    if(this.caught)return;
-    const dx=px-this.x,dy=py-this.y,dist=Math.hypot(dx,dy);
-    const dr=phase==='day'?200:80;
-    if(dist<dr&&!this.hiding){this.state='flee';this.hiding=false;}
-    else if(this.state==='flee'&&dist>dr+80){this.state='wander';}
-    if(this.state==='flee'){
-      // Try to hide
-      let best=null,bd=999;
-      for(const s of HIDE_SPOTS){
-        if(s.occ>=s.cap)continue;
-        const d=Math.hypot(s.x-this.x,s.y-this.y);
-        if(d<bd){bd=d;best=s;}
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="theme-color" content="#000000" />
+    <meta name="screen-orientation" content="landscape" />
+    <style id="rotate-style">
+      #rotate-msg {
+        display: none;
+        position: fixed;
+        inset: 0;
+        z-index: 99999;
+        background: #000;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        font-family: "Cinzel", serif;
       }
-      if(best&&bd<HIDE_DETECT_R){
-        if(this.hideSpot)this.hideSpot.occ--;
-        best.occ++;this.hideSpot=best;
-        this.x=best.x;this.y=best.y;this.hiding=true;this.anim='idle';return;
+      #rotate-msg .rot-icon {
+        font-size: 52px;
+        margin-bottom: 16px;
+        animation: rotSpin 2s ease-in-out infinite;
       }
-      const ang=Math.atan2(-dy,-dx);this.vx=Math.cos(ang)*90;this.vy=Math.sin(ang)*90;
-    } else {
-      if(this.hiding&&Math.random()<0.001){this.hiding=false;if(this.hideSpot){this.hideSpot.occ--;this.hideSpot=null;}}
-      if(this.hiding){this.anim='idle';return;}
-      this.wt-=dt;if(this.wt<=0){this.wt=1.5+Math.random()*2;if(Math.random()<0.35){this.wdx=0;this.wdy=0;}else{const a=Math.random()*Math.PI*2;this.wdx=Math.cos(a)*26;this.wdy=Math.sin(a)*26;}}
-      this.vx=this.wdx;this.vy=this.wdy;
-    }
-    let nx=this.x+this.vx*dt,ny=this.y+this.vy*dt;
-    if(walkable(nx,this.y))this.x=nx;else this.vx=0;
-    if(walkable(this.x,ny))this.y=ny;else this.vy=0;
-    this.anim=(Math.abs(this.vx)>5||Math.abs(this.vy)>5)?'walk':'idle';
-    if(dist<this.r+WOLF_CATCH_R&&!this.hiding){this.caught=true;spawnCatchFX(this.x,this.y);}
-  }
-}
-
-// ═══════════════════════════════════════════════════
-//  GAME STATE
-// ═══════════════════════════════════════════════════
-let mode=''; // 'sp' or 'mp'
-let player={x:88,y:88,vx:0,vy:0,anim:'idle',speed:170};
-let aiHiders=[];
-let cam={x:0,y:0};
-let lightPhase='day';
-let timeLeft=GAME_TIME,lightCutLeft=LIGHT_CUT;
-let scanCD=0;
-let waveFX=[],catchFX=[];
-let amHiding=false,myHideSpot=null;
-let gameRunning=false;
-let FT=0;
-let spCaught=0;
-
-const SP_SPAWNS=[[420,200],[640,400],[1100,130],[990,550],[300,580]];
-
-// ═══════════════════════════════════════════════════
-//  SINGLE PLAYER
-// ═══════════════════════════════════════════════════
-function startSinglePlayer(){
-  mode='sp';
-  mapData=buildMap();
-  for(const s of HIDE_SPOTS)s.occ=0;
-  aiHiders=SP_SPAWNS.map(([x,y],i)=>new AIHider(x,y,i));
-  player.x=88;player.y=88;
-  lightPhase='day';timeLeft=GAME_TIME;lightCutLeft=LIGHT_CUT;
-  scanCD=0;waveFX=[];catchFX=[];spCaught=0;
-  amHiding=false;myHideSpot=null;gameRunning=true;
-  showGameUI('wolf');
-  showBanner('THE HUNT BEGINS','Find all 5 survivors');
-  showScreen('');
-}
-
-function spawnCatchFX(x,y){
-  for(let i=0;i<12;i++){
-    const a=Math.random()*Math.PI*2,spd=60+Math.random()*100;
-    catchFX.push({x,y,vx:Math.cos(a)*spd,vy:Math.sin(a)*spd,life:1,color:`hsl(${Math.random()*40+5},90%,58%)`});
-  }
-  addPingEl(x,y,'#ff6622','✕ CAUGHT');
-  spCaught++;
-  const alive=aiHiders.filter(h=>!h.caught).length;
-  document.getElementById('sp-score').textContent=`CAUGHT: ${spCaught} / ${aiHiders.length}`;
-  if(alive===0)endSP(true);
-}
-
-function endSP(won){
-  gameRunning=false;
-  showScreen('resultScreen');
-  hideGameUI();
-  const rt=document.getElementById('result-title-el');
-  rt.textContent=won?'HUNT COMPLETE':'TIME EXPIRED';
-  rt.style.color=won?'#e8c060':'#cc4422';
-  document.getElementById('result-stat-el').textContent=won?`All 5 survivors consumed. You are the apex predator.`:`${spCaught} of ${aiHiders.length} caught — some escaped into dawn.`;
-  document.getElementById('result-players-el').innerHTML=aiHiders.map((h,i)=>`<div class="rp-row"><div class="rp-dot" style="background:${PALS[i%PALS.length].cl}"></div><div class="rp-name">Survivor ${i+1}</div><div class="rp-status ${h.caught?'caught':'survived'}">${h.caught?'CAUGHT':'ESCAPED'}</div></div>`).join('');
-}
-
-// ═══════════════════════════════════════════════════
-//  JOYSTICK
-// ═══════════════════════════════════════════════════
-let joy={a:false,sx:0,sy:0,dx:0,dy:0};
-const jBase=document.getElementById('joy-base'),jKnob=document.getElementById('joy-knob');
-const JR=42;
-document.getElementById('joy-outer').addEventListener('touchstart',e=>{e.preventDefault();const t=e.touches[0],r=jBase.getBoundingClientRect();joy.sx=r.left+r.width/2;joy.sy=r.top+r.height/2;joy.a=true;updJ(t.clientX,t.clientY);},{passive:false});
-document.getElementById('joy-outer').addEventListener('touchmove',e=>{e.preventDefault();if(!joy.a)return;updJ(e.touches[0].clientX,e.touches[0].clientY);},{passive:false});
-['touchend','touchcancel'].forEach(ev=>document.getElementById('joy-outer').addEventListener(ev,e=>{e.preventDefault();joy.a=false;joy.dx=0;joy.dy=0;jKnob.style.left='43px';jKnob.style.top='43px';},{passive:false}));
-function updJ(cx,cy){let dx=cx-joy.sx,dy=cy-joy.sy;const l=Math.hypot(dx,dy);if(l>JR){dx=dx/l*JR;dy=dy/l*JR;}joy.dx=dx/JR;joy.dy=dy/JR;jKnob.style.left=(43+dx)+'px';jKnob.style.top=(43+dy)+'px';}
-const K={};
-window.addEventListener('keydown',e=>{K[e.code]=true;if(e.code==='Space'){e.preventDefault();doScan();}if(e.code==='KeyH')toggleHide();});
-window.addEventListener('keyup',e=>K[e.code]=false);
-
-// ═══════════════════════════════════════════════════
-//  SCAN
-// ═══════════════════════════════════════════════════
-function doScan(){
-  if(scanCD>0||!gameRunning)return;
-  scanCD=SCAN_CD;
-  waveFX.push({x:player.x,y:player.y,r:0,alpha:0.85});
-  if(mode==='sp'){
-    let n=0;
-    for(const h of aiHiders){
-      if(h.caught)continue;
-      const d=Math.hypot(h.x-player.x,h.y-player.y);
-      if(d<SCAN_RADIUS){n++;addPingEl(h.x,h.y,'#ffcc44',h.hiding?'📍 HIDING':'📍 PREY');}
-    }
-    if(n===0)addPingEl(player.x,player.y-40,'#445566','— CLEAR —');
-  } else if(ws&&ws.readyState===WebSocket.OPEN){
-    ws.send(JSON.stringify({type:'scan'}));
-  }
-}
-
-function toggleHide(){
-  if(mode==='sp')return; // wolf in SP can't hide
-  if(mode==='mp'&&ws&&ws.readyState===WebSocket.OPEN){
-    if(amHiding){ws.send(JSON.stringify({type:'unhide'}));}
-    else{ws.send(JSON.stringify({type:'hide'}));}
-  }
-}
-
-// ═══════════════════════════════════════════════════
-//  DARKNESS
-// ═══════════════════════════════════════════════════
-function drawDarkness(px,py){
-  if(lightPhase!=='night'){dX.clearRect(0,0,W,H);return;}
-  dX.fillStyle='rgb(3,1,1)';dX.fillRect(0,0,W,H);
-  const R=175;
-  dX.save();dX.globalCompositeOperation='destination-out';
-  const g=dX.createRadialGradient(px,py,0,px,py,R);
-  g.addColorStop(0,'rgba(0,0,0,1)');g.addColorStop(0.32,'rgba(0,0,0,0.96)');g.addColorStop(0.65,'rgba(0,0,0,0.45)');g.addColorStop(1,'rgba(0,0,0,0)');
-  dX.fillStyle=g;dX.beginPath();dX.arc(px,py,R,0,Math.PI*2);dX.fill();dX.restore();
-  const fl=Math.sin(FT*1.6)*0.007+0.012;
-  dX.fillStyle=`rgba(40,10,0,${fl})`;dX.fillRect(0,0,W,H);
-}
-
-function drawHideSpots(){
-  if(mode!=='mp'||myRole!=='hider')return;
-  for(const s of HIDE_SPOTS){
-    const sx=s.x-cam.x,sy=s.y-cam.y;
-    if(sx<-40||sx>W+40||sy<-40||sy>H+40)continue;
-    const full=s.occ>=s.cap;
-    gX.fillStyle=full?'rgba(180,40,0,0.3)':'rgba(40,100,200,0.2)';
-    gX.beginPath();gX.arc(sx,sy,20,0,Math.PI*2);gX.fill();
-    gX.strokeStyle=full?'rgba(200,60,20,0.7)':'rgba(60,140,255,0.7)';
-    gX.lineWidth=2;gX.setLineDash([4,4]);gX.beginPath();gX.arc(sx,sy,20,0,Math.PI*2);gX.stroke();gX.setLineDash([]);
-    gX.font='12px serif';gX.textAlign='center';gX.fillStyle=full?'#ff6644':'#88bbff';gX.fillText(full?'✗':'👁',sx,sy+5);
-  }
-}
-
-// ═══════════════════════════════════════════════════
-//  MINIMAP
-// ═══════════════════════════════════════════════════
-function drawMM(){
-  mmX.fillStyle='rgba(8,6,4,0.92)';mmX.fillRect(0,0,100,82);
-  if(!mapData)return;
-  for(let y=0;y<MH;y++)for(let x=0;x<MW;x++){const t=mapData[y][x];if(t===W_)continue;const c={[FL]:'#585250',[WD]:'#583e1a',[ST]:'#484540',[CP]:'#682020',[GR]:'#2a4820'};mmX.fillStyle=c[t]||'#444';mmX.fillRect(x*100/MW,y*82/MH,100/MW+0.5,82/MH+0.5);}
-  // Player dot
-  mmX.fillStyle='#ff3311';mmX.shadowBlur=5;mmX.shadowColor='#ff0000';
-  mmX.beginPath();mmX.arc(player.x/(MW*T)*100,player.y/(MH*T)*82,3.5,0,Math.PI*2);mmX.fill();mmX.shadowBlur=0;
-  // AI hiders (SP)
-  if(mode==='sp'){for(const h of aiHiders){if(h.caught)continue;mmX.fillStyle=lightPhase==='day'?'#ffcc44':'rgba(255,200,60,0.25)';mmX.beginPath();mmX.arc(h.x/(MW*T)*100,h.y/(MH*T)*82,2,0,Math.PI*2);mmX.fill();}}
-  // MP players
-  if(mode==='mp'&&gameState?.players){for(const[id,p]of Object.entries(gameState.players)){if(id===myId||p.caught)continue;mmX.fillStyle=p.role==='wolf'?'#ff4411':p.color||'#88bbff';mmX.beginPath();mmX.arc(p.x/(MW*T)*100,p.y/(MH*T)*82,2,0,Math.PI*2);mmX.fill();}}
-  mmX.strokeStyle='rgba(220,160,40,0.35)';mmX.lineWidth=1;mmX.strokeRect(cam.x/(MW*T)*100,cam.y/(MH*T)*82,W/(MW*T)*100,H/(MH*T)*82);
-}
-
-// ═══════════════════════════════════════════════════
-//  SCAN ARC UI
-// ═══════════════════════════════════════════════════
-function drawArc(pct,onCD){
-  arcX.clearRect(0,0,88,88);
-  arcX.strokeStyle='rgba(55,18,8,0.85)';arcX.lineWidth=6;arcX.beginPath();arcX.arc(44,44,38,0,Math.PI*2);arcX.stroke();
-  arcX.strokeStyle=onCD?'#991e08':'#ff4422';arcX.lineWidth=6;arcX.lineCap='round';
-  arcX.beginPath();arcX.arc(44,44,38,-Math.PI/2,-Math.PI/2+pct*Math.PI*2);arcX.stroke();
-  const icon=document.getElementById('scan-icon'),lbl=document.getElementById('scan-lbl'),btn=document.getElementById('scan-btn');
-  if(onCD){btn.classList.add('cd');icon.textContent=Math.ceil(scanCD)+'s';icon.style.fontSize='16px';lbl.textContent='WAIT';}
-  else{btn.classList.remove('cd');icon.textContent='🔴';icon.style.fontSize='20px';lbl.textContent='SCAN';}
-}
-
-// ═══════════════════════════════════════════════════
-//  PING ELEMENTS
-// ═══════════════════════════════════════════════════
-function addPingEl(wx,wy,color,text){
-  const el=document.createElement('div');el.className='ping-el';
-  el.style.color=color;el.textContent=text;
-  document.getElementById('pings').appendChild(el);
-  function pos(){el.style.left=(wx-cam.x)+'px';el.style.top=(wy-cam.y)+'px';}pos();
-  setTimeout(()=>{el.style.opacity='0';el.style.top=(wy-cam.y-36)+'px';},100);
-  setTimeout(()=>el.remove(),900);
-}
-
-// ═══════════════════════════════════════════════════
-//  BANNER & TOAST
-// ═══════════════════════════════════════════════════
-function showBanner(title,sub,red=false){
-  const b=document.getElementById('anim-banner'),t=document.getElementById('ab-title'),s=document.getElementById('ab-sub');
-  t.textContent=title;s.textContent=sub;t.style.color=red?'#ff3311':'#e8c060';t.style.textShadow=`0 0 30px ${red?'#ff0000':'rgba(220,160,40,0.9)'}`;
-  b.classList.add('show');setTimeout(()=>b.classList.remove('show'),2800);
-}
-let toastT=null;
-function toast(msg,green=false){
-  const el=document.getElementById('toast');el.textContent=msg;
-  el.className='show'+(green?' green':'');
-  if(toastT)clearTimeout(toastT);
-  toastT=setTimeout(()=>el.className='',2500);
-}
-
-// ═══════════════════════════════════════════════════
-//  GAME LOOP
-// ═══════════════════════════════════════════════════
-let lastT=0,loopRunning=false;
-function startLoop(){if(!loopRunning){loopRunning=true;requestAnimationFrame(loop);}}
-function loop(ts){
-  const dt=Math.min((ts-lastT)/1000,0.05);lastT=ts;FT=ts/1000;
-  requestAnimationFrame(loop);
-  if(!gameRunning)return;
-
-  // Timers
-  timeLeft-=dt;
-  if(lightCutLeft>0){lightCutLeft-=dt;if(lightCutLeft<=0&&lightPhase==='day'){lightPhase='night';document.getElementById('phase-badge').textContent='DARKNESS';document.getElementById('phase-badge').className='night';showBanner('LIGHTS OUT','The darkness is yours',true);}}
-  if(scanCD>0)scanCD=Math.max(0,scanCD-dt);
-
-  // Player movement (SP and MP local prediction)
-  let mx2=joy.dx,my2=joy.dy;
-  if(K['KeyW']||K['ArrowUp'])my2=-1;if(K['KeyS']||K['ArrowDown'])my2=1;
-  if(K['KeyA']||K['ArrowLeft'])mx2=-1;if(K['KeyD']||K['ArrowRight'])mx2=1;
-  const ml=Math.hypot(mx2,my2);
-  if(ml>0.01&&!amHiding){
-    mx2/=ml;my2/=ml;
-    const pr=12;
-    const nx=player.x+mx2*player.speed*dt,ny=player.y+my2*player.speed*dt;
-    if(walkable(nx-pr,player.y)&&walkable(nx+pr,player.y))player.x=nx;
-    if(walkable(player.x,ny-pr)&&walkable(player.x,ny+pr))player.y=ny;
-    player.anim='walk';
-    if(mode==='mp'&&ws?.readyState===1)ws.send(JSON.stringify({type:'move',dx:mx2,dy:my2}));
-  } else {player.anim='idle';}
-
-  // SP AI
-  if(mode==='sp'){
-    for(const h of aiHiders)h.update(dt,player.x,player.y,lightPhase);
-    const alive=aiHiders.filter(h=>!h.caught).length;
-    document.getElementById('alive-val').textContent=`${alive}/${aiHiders.length}`;
-    if(timeLeft<=0&&alive>0){endSP(false);gameRunning=false;return;}
-    // Check nearby hiding spot (SP wolf — not used, but keep structure)
-  }
-
-  // Camera
-  const tcx=player.x-W/2,tcy=player.y-H/2;
-  cam.x+=(tcx-cam.x)*0.12;cam.y+=(tcy-cam.y)*0.12;
-  cam.x=Math.max(0,Math.min(cam.x,MW*T-W));cam.y=Math.max(0,Math.min(cam.y,MH*T-H));
-
-  // Wave FX
-  for(let i=waveFX.length-1;i>=0;i--){const w=waveFX[i];w.r+=280*dt;w.alpha-=1.1*dt;if(w.alpha<=0)waveFX.splice(i,1);}
-  for(let i=catchFX.length-1;i>=0;i--){const s=catchFX[i];s.x+=s.vx*dt;s.y+=s.vy*dt;s.vy+=180*dt;s.life-=dt;if(s.life<=0)catchFX.splice(i,1);}
-
-  // ── RENDER ──
-  gX.fillStyle='#0a0806';gX.fillRect(0,0,W,H);
-  const tx0=Math.max(0,Math.floor(cam.x/T)-1),ty0=Math.max(0,Math.floor(cam.y/T)-1);
-  const tx1=Math.min(MW,tx0+Math.ceil(W/T)+3),ty1=Math.min(MH,ty0+Math.ceil(H/T)+3);
-  for(let ty=ty0;ty<ty1;ty++)for(let tx=tx0;tx<tx1;tx++)gX.drawImage(getTile(mapData[ty][tx],tx,ty),tx*T-cam.x,ty*T-cam.y,T,T);
-  for(const p of PROPS)drawProp(p,cam.x,cam.y);
-  drawHideSpots();
-
-  // Scan waves
-  gX.setLineDash([8,6]);
-  for(const w of waveFX){const wx=w.x-cam.x,wy=w.y-cam.y;gX.strokeStyle=`rgba(255,140,20,${w.alpha*0.45})`;gX.lineWidth=3;gX.beginPath();gX.arc(wx,wy,w.r,0,Math.PI*2);gX.stroke();}
-  gX.setLineDash([]);
-
-  // Catch sparkles
-  for(const s of catchFX){gX.fillStyle=s.color;gX.globalAlpha=s.life;gX.beginPath();gX.arc(s.x-cam.x,s.y-cam.y,3,0,Math.PI*2);gX.fill();}
-  gX.globalAlpha=1;
-
-  // SP hiders
-  if(mode==='sp'){
-    for(const h of aiHiders){
-      if(lightPhase==='night'&&Math.hypot(h.x-player.x,h.y-player.y)>190)continue;
-      drawHider(h.x-cam.x,h.y-cam.y,h.id,h.anim,h.caught,h.hiding,FT,false);
-    }
-  }
-
-  // MP other players
-  if(mode==='mp'&&gameState?.players){
-    const playerIds=Object.keys(gameState.players);
-    for(const[id,p]of Object.entries(gameState.players)){
-      if(id===myId)continue;
-      // VISIBILITY RULES:
-      // Hiding players are COMPLETELY INVISIBLE to the wolf (use scanner to find them)
-      // Hiding players are visible as faint ghosts to fellow hiders only
-      if(p.hiding){
-        if(myRole==='wolf')continue; // wolf cannot see hiding players at all
-        // fellow hiders see a faint ghost — handled by drawHider opacity
+      #rotate-msg .rot-text {
+        font-size: 14px;
+        letter-spacing: 4px;
+        color: #e8c060;
+        text-align: center;
+        line-height: 1.8;
       }
-      if(lightPhase==='night'){
-        const d=Math.hypot(p.x-player.x,p.y-player.y);
-        if(myRole==='wolf'&&d>190&&p.role==='hider')continue;
-        if(myRole==='hider'&&d>130)continue;
+      #rotate-msg .rot-sub {
+        font-size: 10px;
+        letter-spacing: 3px;
+        color: #664422;
+        margin-top: 8px;
       }
-      const sx=p.x-cam.x,sy=p.y-cam.y;
-      if(sx<-40||sx>W+40||sy<-40||sy>H+40)continue;
-      if(p.role==='wolf')drawWerewolf(sx,sy,p.anim||'idle',FT);
-      else drawHider(sx,sy,playerIds.indexOf(id)%5,p.anim||'idle',p.caught,p.hiding,FT,false);
-    }
-  }
-  // Hide countdown timer for self when hiding in MP
-  if(mode==='mp'&&amHiding&&myHideStart>0){
-    const elapsed=Date.now()-myHideStart;
-    const remaining=Math.max(0,(myHideMaxMs-elapsed)/1000);
-    const pct=Math.min(1,elapsed/myHideMaxMs);
-    const sx=player.x-cam.x,sy=player.y-cam.y-54;
-    gX.fillStyle='rgba(0,0,0,0.65)';gX.beginPath();gX.roundRect(sx-30,sy,60,10,5);gX.fill();
-    const bc=remaining>3?'#44cc66':remaining>1?'#ffaa22':'#ff3311';
-    gX.fillStyle=bc;gX.beginPath();gX.roundRect(sx-30,sy,60*(1-pct),10,5);gX.fill();
-    gX.fillStyle='#fff';gX.font='bold 9px Cinzel';gX.textAlign='center';
-    gX.fillText(remaining.toFixed(1)+'s',sx,sy-3);
-    if(remaining<=3){
-      gX.fillStyle='rgba(255,50,0,'+( 0.12+Math.sin(FT*8)*0.08)+')';
-      gX.beginPath();gX.arc(sx,sy+44,32,0,Math.PI*2);gX.fill();
-    }
-  }
-
-  // Player (wolf in SP/MP, or hider in MP)
-  if(mode==='sp'||(mode==='mp'&&myRole==='wolf'))drawWerewolf(player.x-cam.x,player.y-cam.y,player.anim,FT);
-  else if(mode==='mp'&&myRole==='hider')drawHider(player.x-cam.x,player.y-cam.y,0,player.anim,false,amHiding,FT,true);
-
-  drawDarkness(player.x-cam.x,player.y-cam.y);
-  drawMM();
-
-  // HUD
-  const rem=Math.max(0,Math.ceil(timeLeft));
-  const tv=document.getElementById('timer-val');
-  tv.textContent=String(Math.floor(rem/60)).padStart(2,'0')+':'+String(rem%60).padStart(2,'0');
-  tv.className=rem<15?'urgent':'';
-  drawArc(scanCD<=0?1:1-scanCD/SCAN_CD,scanCD>0);
-
-  // Nearby hiding spot check (MP hiders)
-  if(mode==='mp'&&myRole==='hider'&&!amHiding){
-    let near=null,bd=999;
-    for(const s of HIDE_SPOTS){const d=Math.hypot(s.x-player.x,s.y-player.y);if(d<HIDE_DETECT_R&&d<bd){near=s;bd=d;}}
-    const ni=document.getElementById('nearby-spot');
-    const hb=document.getElementById('hide-btn-wrap');
-    if(near){ni.style.display='block';hb.style.display='block';}
-    else{ni.style.display='none';hb.style.display='none';}
-  }
-}
-// ── ORIENTATION LOCK — landscape on mobile only, ignore on desktop ──
-function isMobileDevice(){
-  return /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent) ||
-    (navigator.maxTouchPoints > 1 && window.innerWidth < 1200);
-}
-function checkOrientation(){
-  const warn = document.getElementById('rotate-warn');
-  if(!warn) return;
-  // Only show rotate warning on MOBILE devices in portrait mode
-  // Desktop/laptop: always hide the warning (they are always "landscape enough")
-  if(isMobileDevice() && window.innerHeight > window.innerWidth){
-    warn.style.display='flex';
-  } else {
-    warn.style.display='none';
-  }
-}
-// Try to lock orientation on mobile
-if(isMobileDevice() && screen.orientation && screen.orientation.lock){
-  screen.orientation.lock('landscape').catch(()=>{});
-}
-window.addEventListener('resize', checkOrientation);
-window.addEventListener('orientationchange', checkOrientation);
-checkOrientation(); // run once on load
-startLoop();
-
-// ═══════════════════════════════════════════════════
-//  SCREEN HELPERS
-// ═══════════════════════════════════════════════════
-const SCREENS=['titleScreen','modeScreen','setupScreen','lobbyScreen','resultScreen','howScreen','multiScreen'];
-function showScreen(id){
-  SCREENS.forEach(s=>{const el=document.getElementById(s);if(el){if(s===id)el.classList.remove('hide');else el.classList.add('hide');}});
-}
-function gotoMode(){showScreen('modeScreen');}
-function gotoMultiplayer(){showScreen('multiScreen');}
-function showHowToPlay(){showScreen('howScreen');}
-
-function showGameUI(role){
-  ['hud','minimap-wrap','controls','chat-wrap'].forEach(id=>{const el=document.getElementById(id);if(el)el.style.display='flex';});
-  document.getElementById('hud').style.display='block';
-  document.getElementById('minimap-wrap').style.display='block';
-  document.getElementById('chat-wrap').style.display='block';
-  if(role==='wolf'){
-    document.getElementById('role-text').textContent='WEREWOLF';document.getElementById('role-text').className='wolf';
-    document.getElementById('scan-wrap').style.display='flex';document.getElementById('scan-area-lbl').style.display='block';
-    document.getElementById('hide-btn-wrap').style.display='none';
-    document.getElementById('sp-score').style.display=mode==='sp'?'block':'none';
-    if(mode==='sp')document.getElementById('sp-score').textContent='CAUGHT: 0 / '+aiHiders.length;
-  } else {
-    document.getElementById('role-text').textContent='HIDER';document.getElementById('role-text').className='hider';
-    document.getElementById('scan-wrap').style.display='none';document.getElementById('scan-area-lbl').style.display='none';
-    document.getElementById('hide-btn-wrap').style.display='none';
-    document.getElementById('sp-score').style.display='none';
-  }
-  document.getElementById('role-banner').style.display='block';
-  document.getElementById('phase-badge').textContent='DAYLIGHT';document.getElementById('phase-badge').className='';
-}
-function hideGameUI(){
-  ['hud','minimap-wrap','controls','chat-wrap','role-banner','hide-btn-wrap','nearby-spot','sp-score'].forEach(id=>{const el=document.getElementById(id);if(el)el.style.display='none';});
-}
-function backToTitle(){
-  gameRunning=false;if(ws)ws.close();
-  hideGameUI();showScreen('titleScreen');
-  lightPhase='day';timeLeft=GAME_TIME;lightCutLeft=LIGHT_CUT;scanCD=0;
-  dX.clearRect(0,0,W,H);gX.clearRect(0,0,W,H);
-}
-function playAgain(){
-  showScreen('');
-  hideGameUI();
-  if(mode==='sp')startSinglePlayer();
-  else showScreen('multiScreen');
-}
-
-// ═══════════════════════════════════════════════════
-//  MULTIPLAYER
-// ═══════════════════════════════════════════════════
-const COLORS=['#4488ff','#ff4488','#44ff88','#ffaa44','#aa44ff','#ff6644','#44ccff'];
-let selColor=COLORS[0],ws=null,myId=null,myRole='hider',gameState=null,chatMsgs=[];
-let isHost=false;
-
-function gotoSetup(setupMode){
-  showScreen('setupScreen');
-  document.getElementById('setup-back-btn').onclick=()=>showScreen('multiScreen');
-  const colorOpts=COLORS.map((c,i)=>`<div class="color-opt${i===0?' sel':''}" style="background:${c}" onclick="pickColor(this,'${c}')"></div>`).join('');
-  const inner=document.getElementById('setup-inner');
-  if(setupMode==='create'){
-    inner.innerHTML=`<div class="setup-title">CREATE ROOM</div><div style="height:16px"></div><label class="setup-label">YOUR NAME</label><input class="setup-input" id="nameIn" placeholder="HUNTER" maxlength="14" oninput="this.value=this.value.toUpperCase()"><div class="setup-spacer"></div><label class="setup-label">PICK YOUR COLOR</label><div class="color-row" id="colorRow">${colorOpts}</div><div style="height:20px"></div><button class="main-btn primary" style="width:220px;" onclick="doCreate()">CREATE ROOM</button>`;
-  } else {
-    inner.innerHTML=`<div class="setup-title">JOIN ROOM</div><div style="height:16px"></div><label class="setup-label">YOUR NAME</label><input class="setup-input" id="nameIn" placeholder="HUNTER" maxlength="14" oninput="this.value=this.value.toUpperCase()"><div class="setup-spacer"></div><label class="setup-label">ROOM CODE</label><input class="code-input" id="codeIn" placeholder="XXXX" maxlength="4" oninput="this.value=this.value.toUpperCase()"><div class="setup-spacer"></div><label class="setup-label">PICK YOUR COLOR</label><div class="color-row" id="colorRow">${colorOpts}</div><div style="height:20px"></div><button class="main-btn primary" style="width:220px;" onclick="doJoin()">JOIN ROOM</button>`;
-  }
-}
-
-function pickColor(el,c){selColor=c;document.querySelectorAll('.color-opt').forEach(o=>o.classList.toggle('sel',o===el));}
-
-// Safe WebSocket connect — catches missing server gracefully
-function connectWS(cb){
-  // ── CHANGE THIS URL to your Render server once deployed ──
-  const SERVER_URL = location.protocol==='https:' ? `wss://${location.host}` : location.hostname==='localhost'||location.hostname==='127.0.0.1' ? `ws://${location.host}` : null;
-  if(!SERVER_URL){toast('No server configured. See deployment guide.');return;}
-  try{
-    ws=new WebSocket(SERVER_URL);
-    ws.onopen=cb;
-    ws.onmessage=e=>{try{handleMsg(JSON.parse(e.data));}catch{}};
-    ws.onerror=()=>toast('Cannot connect to server. Is it running?');
-    ws.onclose=()=>{if(gameRunning)toast('Connection lost');};
-  }catch(err){toast('Server not available. Start the server first.');}
-}
-
-function doCreate(){
-  const name=document.getElementById('nameIn')?.value.trim()||'HUNTER';
-  connectWS(()=>ws.send(JSON.stringify({type:'create_room',name,color:selColor})));
-}
-function doJoin(){
-  const name=document.getElementById('nameIn')?.value.trim()||'HUNTER';
-  const code=document.getElementById('codeIn')?.value.trim().toUpperCase();
-  if(!code||code.length!==4){toast('Enter a 4-letter room code');return;}
-  connectWS(()=>ws.send(JSON.stringify({type:'join_room',code,name,color:selColor})));
-}
-function requestStart(){ws?.send(JSON.stringify({type:'start_game'}));}
-function leaveGame(){if(ws)ws.close();backToTitle();}
-
-function handleMsg(msg){
-  switch(msg.type){
-    case 'room_created':myId=msg.yourId;isHost=true;showScreen('lobbyScreen');document.getElementById('lobby-code').textContent=msg.code;document.getElementById('start-btn').style.display='block';break;
-    case 'room_joined':myId=msg.yourId;showScreen('lobbyScreen');document.getElementById('lobby-code').textContent=msg.code;break;
-    case 'lobby_state':
-      document.getElementById('lobby-list').innerHTML=msg.players.map((p,i)=>`<div class="lobby-player"><div class="p-dot" style="background:${p.color}"></div><div class="p-name">${p.name}</div>${i===0?'<div class="p-host">HOST</div>':''}</div>`).join('');
-      document.getElementById('lobby-status').textContent=msg.players.length<2?'Need at least 2 players to start':'Ready! Host can start the hunt.';
-      break;
-    case 'role_assigned':myRole=msg.role;myId=msg.yourId;break;
-    case 'game_start':
-      mapData=msg.mapData;
-      showScreen('');showGameUI(myRole);
-      mode='mp';lightPhase='day';timeLeft=GAME_TIME;lightCutLeft=LIGHT_CUT;scanCD=0;
-      waveFX=[];catchFX=[];amHiding=false;gameRunning=true;
-      showBanner(myRole==='wolf'?'YOU ARE THE WEREWOLF':'YOU ARE A HIDER',myRole==='wolf'?'Hunt them all down':'Stay hidden till dawn',myRole==='wolf');
-      break;
-    case 'state':
-      gameState=msg;lightPhase=msg.lightPhase;
-      if(msg.players?.[myId]){const mp=msg.players[myId];player.x=mp.x;player.y=mp.y;}
-      const hiders=Object.values(msg.players||{}).filter(p=>p.role==='hider');
-      document.getElementById('alive-val').textContent=`${hiders.filter(p=>!p.caught).length}/${hiders.length}`;
-      break;
-    case 'lights_out':lightPhase='night';document.getElementById('phase-badge').textContent='DARKNESS';document.getElementById('phase-badge').className='night';showBanner('LIGHTS OUT','The darkness is yours now',true);break;
-    case 'player_caught':if(msg.id===myId){document.getElementById('caught-overlay').classList.add('show');setTimeout(()=>document.getElementById('caught-overlay').classList.remove('show'),4000);}break;
-    case 'hide_success':
-      amHiding=true;
-      myHideMaxMs=msg.maxHideMs||10000;
-      myHideStart=Date.now();
-      document.getElementById('hide-btn').textContent='LEAVE SPOT';
-      document.getElementById('hide-btn').classList.add('hiding');
-      toast(`Hiding: ${msg.label} (${myHideMaxMs/1000}s max)`,true);
-      break;
-    case 'hide_fail':toast(msg.msg);break;
-    case 'force_unhide':
-      amHiding=false;myHideStart=0;
-      document.getElementById('hide-btn').textContent='HIDE HERE';
-      document.getElementById('hide-btn').classList.remove('hiding');
-      toast('You stayed too long — you were exposed!');
-      break;
-    case 'player_hiding':
-      if(msg.id===myId&&!msg.hiding){
-        amHiding=false;myHideStart=0;
-        document.getElementById('hide-btn').textContent='HIDE HERE';
-        document.getElementById('hide-btn').classList.remove('hiding');
-      }
-      break;
-    case 'scan_result':
-      waveFX.push({x:msg.px,y:msg.py,r:0,alpha:0.85});
-      for(const d of msg.detected)addPingEl(d.x,d.y,'#ffcc44',`📍 ${d.room}`);
-      if(msg.detected.length===0)addPingEl(player.x,player.y-40,'#445566','— CLEAR —');
-      break;
-    case 'scan_wave':waveFX.push({x:msg.x,y:msg.y,r:0,alpha:0.85});break;
-    case 'player_caught':
-      if(msg.id===myId){document.getElementById('caught-overlay').classList.add('show');setTimeout(()=>document.getElementById('caught-overlay').classList.remove('show'),4000);}
-      break;
-    case 'game_over':
-      gameRunning=false;
-      // Show result for 5 seconds then auto return to lobby
-      showBanner(msg.wolfWins?'HUNT COMPLETE':'THEY ESCAPED',msg.wolfWins?'All prey consumed':'Some survived till dawn',!msg.wolfWins);
-      setTimeout(()=>{
-        hideGameUI();
-        showScreen('resultScreen');
-        const rt=document.getElementById('result-title-el');
-        rt.textContent=msg.wolfWins?'HUNT COMPLETE':'THEY ESCAPED';
-        rt.style.color=msg.wolfWins?'#e8c060':'#cc4422';
-        document.getElementById('result-stat-el').textContent=msg.wolfWins?`All ${msg.total} survivors consumed.`:`${msg.caught} of ${msg.total} caught — dawn came too soon.`;
-        if(msg.results){
-          document.getElementById('result-players-el').innerHTML=msg.results.map(r=>`<div class="rp-row"><div class="rp-dot" style="background:${r.role==='wolf'?'#ff3311':r.color}"></div><div class="rp-name">${r.name}</div><div class="rp-status ${r.role==='wolf'?'wolf':r.caught?'caught':'survived'}">${r.role==='wolf'?'WEREWOLF':r.caught?'CAUGHT':'SURVIVED'}</div></div>`).join('');
+      @keyframes rotSpin {
+        0% {
+          transform: rotate(0deg);
         }
-      },2000);
-      break;
-    case 'return_to_lobby':
-      // Server sent everyone back to lobby after game ends — stay in room!
-      setTimeout(()=>{
-        gameRunning=false;
-        showScreen('lobbyScreen');
-        hideGameUI();
-        lightPhase='day';timeLeft=120;lightCutLeft=25;scanCD=0;amHiding=false;myHideStart=0;
-        dX.clearRect(0,0,W,H);
-        document.getElementById('lobby-list').innerHTML=msg.players.map((p,i)=>`<div class="lobby-player"><div class="p-dot" style="background:${p.color}"></div><div class="p-name">${p.name}</div>${i===0?'<div class="p-host">HOST</div>':''}</div>`).join('');
-        document.getElementById('lobby-status').textContent='Game ended — ready for next round!';
-        document.getElementById('lobby-code').textContent=myCode;
-        showBanner('BACK TO LOBBY','Play again anytime');
-      },3000);
-      break;
-    case 'chat':addChat(msg);break;
-    case 'error':toast(msg.msg);break;
-  }
-}
-let myHideStart=0,myHideMaxMs=10000;
+        40% {
+          transform: rotate(-90deg);
+        }
+        60% {
+          transform: rotate(-90deg);
+        }
+        100% {
+          transform: rotate(0deg);
+        }
+      }
+    </style>
+    <meta name="screen-orientation" content="landscape" />
+    <title>WEREWOLF HUNT</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700;900&family=Cinzel:wght@400;600&family=JetBrains+Mono&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        -webkit-tap-highlight-color: transparent;
+        touch-action: none;
+        user-select: none;
+      }
+      :root {
+        --gold: #e8c060;
+        --gold2: #b89040;
+        --red: #ff3311;
+        --dark: #0a0604;
+        --border: rgba(180, 120, 40, 0.3);
+      }
+      #rotate-warn {
+        display: none;
+        position: fixed;
+        inset: 0;
+        z-index: 9999;
+        background: #000;
+        align-items: center;
+        justify-content: center;
+        flex-direction: column;
+        gap: 16px;
+        pointer-events: none;
+      }
+      body {
+        background: #000;
+        overflow: hidden;
+        font-family: "Cinzel", serif;
+        color: var(--gold);
+      }
+      canvas {
+        display: block;
+        position: fixed;
+        top: 0;
+        left: 0;
+      }
+      #darkCanvas {
+        pointer-events: none;
+        z-index: 3;
+      }
+      #gameCanvas {
+        z-index: 2;
+      }
+      .screen {
+        position: fixed;
+        inset: 0;
+        z-index: 100;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+      }
+      .screen.hide {
+        display: none !important;
+      }
+      .screen-bg {
+        background: radial-gradient(ellipse at 50% 40%, #1a0800 0%, #000 70%);
+      }
+      #titleScreen {
+        gap: 0;
+        overflow: hidden;
+      }
+      .title-particles {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+      }
+      .title-glow {
+        position: absolute;
+        top: 30%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 400px;
+        height: 400px;
+        border-radius: 50%;
+        background: radial-gradient(
+          circle,
+          rgba(180, 60, 0, 0.15),
+          transparent 70%
+        );
+        pointer-events: none;
+      }
+      .title-art {
+        font-family: "Cinzel Decorative", serif;
+        font-size: clamp(34px, 9vw, 80px);
+        color: var(--gold);
+        letter-spacing: 6px;
+        text-shadow:
+          0 0 60px rgba(220, 160, 40, 0.5),
+          0 0 120px rgba(180, 80, 0, 0.3);
+        text-align: center;
+        line-height: 1.05;
+        margin-bottom: 6px;
+        position: relative;
+        z-index: 1;
+        animation: titlePulse 3s ease-in-out infinite;
+      }
+      @keyframes titlePulse {
+        0%,
+        100% {
+          text-shadow:
+            0 0 40px rgba(220, 160, 40, 0.4),
+            0 0 80px rgba(180, 80, 0, 0.2);
+        }
+        50% {
+          text-shadow:
+            0 0 80px rgba(220, 160, 40, 0.7),
+            0 0 160px rgba(180, 80, 0, 0.4);
+        }
+      }
+      .title-wolf {
+        font-size: clamp(14px, 3vw, 22px);
+        letter-spacing: 12px;
+        color: #884422;
+        margin-bottom: 40px;
+        position: relative;
+        z-index: 1;
+      }
+      .title-divider {
+        width: 200px;
+        height: 1px;
+        background: linear-gradient(
+          to right,
+          transparent,
+          var(--border),
+          transparent
+        );
+        margin-bottom: 32px;
+      }
+      .main-btn {
+        width: 260px;
+        padding: 16px 0;
+        margin: 7px;
+        background: transparent;
+        border: 1px solid var(--border);
+        color: var(--gold);
+        font-size: 13px;
+        letter-spacing: 5px;
+        cursor: pointer;
+        font-family: "Cinzel", serif;
+        text-transform: uppercase;
+        position: relative;
+        z-index: 1;
+        transition: all 0.3s;
+        overflow: hidden;
+      }
+      .main-btn::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(
+          to right,
+          transparent,
+          rgba(220, 160, 40, 0.07),
+          transparent
+        );
+        transform: translateX(-100%);
+        transition: transform 0.5s;
+      }
+      .main-btn:hover::before,
+      .main-btn:active::before {
+        transform: translateX(100%);
+      }
+      .main-btn:hover,
+      .main-btn:active {
+        border-color: rgba(220, 160, 40, 0.7);
+        background: rgba(220, 160, 40, 0.06);
+      }
+      .main-btn.primary {
+        border-color: rgba(220, 160, 40, 0.6);
+        font-size: 15px;
+        letter-spacing: 6px;
+        padding: 18px 0;
+      }
+      .main-btn.danger {
+        border-color: rgba(200, 40, 20, 0.4);
+        color: #ff5533;
+      }
+      .main-btn.danger:hover {
+        background: rgba(200, 40, 20, 0.08);
+      }
+      .version-tag {
+        position: absolute;
+        bottom: 16px;
+        font-size: 8px;
+        letter-spacing: 4px;
+        color: #443322;
+      }
+      #modeScreen {
+        gap: 0;
+      }
+      .mode-back {
+        position: absolute;
+        top: 20px;
+        left: 20px;
+        font-size: 9px;
+        letter-spacing: 3px;
+        color: #664422;
+        cursor: pointer;
+        padding: 8px 14px;
+        border: 1px solid rgba(100, 60, 20, 0.3);
+        border-radius: 20px;
+      }
+      .mode-back:hover {
+        color: var(--gold);
+        border-color: var(--border);
+      }
+      .mode-title {
+        font-family: "Cinzel Decorative", serif;
+        font-size: clamp(16px, 4vw, 28px);
+        letter-spacing: 6px;
+        margin-bottom: 8px;
+        text-align: center;
+      }
+      .mode-sub {
+        font-size: 9px;
+        letter-spacing: 4px;
+        color: #664422;
+        margin-bottom: 36px;
+      }
+      .mode-cards {
+        display: flex;
+        gap: 16px;
+        flex-wrap: wrap;
+        justify-content: center;
+        padding: 0 20px;
+        max-width: 600px;
+      }
+      .mode-card {
+        flex: 1;
+        min-width: 140px;
+        max-width: 200px;
+        background: rgba(255, 255, 255, 0.025);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 24px 16px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.3s;
+      }
+      .mode-card:hover,
+      .mode-card:active {
+        background: rgba(220, 160, 40, 0.08);
+        border-color: rgba(220, 160, 40, 0.6);
+        transform: translateY(-3px);
+      }
+      .mode-card-icon {
+        font-size: 36px;
+        display: block;
+        margin-bottom: 12px;
+      }
+      .mode-card-title {
+        font-size: 12px;
+        letter-spacing: 3px;
+        color: var(--gold);
+        margin-bottom: 6px;
+      }
+      .mode-card-desc {
+        font-size: 9px;
+        letter-spacing: 1px;
+        color: #664422;
+        line-height: 1.6;
+      }
+      #setupScreen {
+        gap: 12px;
+      }
+      .setup-label {
+        font-size: 9px;
+        letter-spacing: 4px;
+        color: #886644;
+        margin-bottom: 4px;
+        display: block;
+        text-align: center;
+      }
+      .setup-input {
+        width: 240px;
+        padding: 13px 16px;
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid var(--border);
+        color: var(--gold);
+        font-size: 14px;
+        font-family: "Cinzel", serif;
+        text-align: center;
+        outline: none;
+        letter-spacing: 2px;
+      }
+      .setup-input:focus {
+        border-color: rgba(220, 160, 40, 0.7);
+      }
+      .code-input {
+        width: 180px;
+        padding: 13px 16px;
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid var(--border);
+        color: var(--gold);
+        font-size: 26px;
+        font-family: "JetBrains Mono", monospace;
+        text-align: center;
+        letter-spacing: 10px;
+        outline: none;
+      }
+      .color-row {
+        display: flex;
+        gap: 10px;
+        justify-content: center;
+        flex-wrap: wrap;
+        max-width: 280px;
+      }
+      .color-opt {
+        width: 34px;
+        height: 34px;
+        border-radius: 50%;
+        cursor: pointer;
+        border: 3px solid transparent;
+        transition: all 0.2s;
+      }
+      .color-opt.sel {
+        border-color: #fff;
+        box-shadow: 0 0 12px rgba(255, 255, 255, 0.5);
+        transform: scale(1.15);
+      }
+      .setup-title {
+        font-family: "Cinzel Decorative", serif;
+        font-size: clamp(14px, 3.5vw, 22px);
+        letter-spacing: 5px;
+        margin-bottom: 4px;
+      }
+      .setup-spacer {
+        height: 10px;
+      }
+      #lobbyScreen {
+        gap: 10px;
+      }
+      .lobby-code-wrap {
+        text-align: center;
+        margin-bottom: 8px;
+      }
+      .lobby-code-label {
+        font-size: 8px;
+        letter-spacing: 5px;
+        color: #664422;
+        margin-bottom: 4px;
+      }
+      .lobby-code {
+        font-size: 40px;
+        letter-spacing: 14px;
+        color: var(--gold);
+        text-shadow: 0 0 20px rgba(220, 160, 40, 0.5);
+        font-family: "JetBrains Mono", monospace;
+      }
+      .lobby-hint {
+        font-size: 9px;
+        letter-spacing: 3px;
+        color: #443322;
+        margin-top: 4px;
+      }
+      .lobby-list {
+        width: 280px;
+        max-height: 180px;
+        overflow-y: auto;
+        background: rgba(0, 0, 0, 0.4);
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        padding: 8px;
+      }
+      .lobby-player {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 8px 6px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+      }
+      .lobby-player:last-child {
+        border: none;
+      }
+      .p-dot {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        flex-shrink: 0;
+      }
+      .p-name {
+        font-size: 11px;
+        letter-spacing: 2px;
+        flex: 1;
+      }
+      .p-host {
+        font-size: 8px;
+        letter-spacing: 1px;
+        color: #886644;
+        padding: 2px 7px;
+        border: 1px solid rgba(180, 120, 40, 0.3);
+        border-radius: 10px;
+      }
+      .lobby-status {
+        font-size: 9px;
+        letter-spacing: 2px;
+        color: #443322;
+        text-align: center;
+      }
+      #hud {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        z-index: 20;
+        pointer-events: none;
+      }
+      #topbar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: linear-gradient(
+          to bottom,
+          rgba(0, 0, 0, 0.95),
+          transparent
+        );
+        padding: 10px 16px;
+      }
+      .hud-cell {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+      .hud-lbl {
+        font-size: 7px;
+        letter-spacing: 4px;
+        color: #7a5a2a;
+        margin-bottom: 1px;
+      }
+      .hud-val {
+        font-size: 22px;
+        letter-spacing: 2px;
+      }
+      #timer-val {
+        color: var(--gold);
+        text-shadow: 0 0 10px rgba(220, 160, 40, 0.6);
+      }
+      #timer-val.urgent {
+        color: var(--red);
+        animation: urgentPulse 0.5s infinite alternate;
+      }
+      @keyframes urgentPulse {
+        from {
+          opacity: 1;
+        }
+        to {
+          opacity: 0.4;
+        }
+      }
+      #phase-badge {
+        padding: 5px 13px;
+        border-radius: 20px;
+        font-size: 9px;
+        letter-spacing: 3px;
+        background: rgba(180, 120, 0, 0.2);
+        border: 1px solid var(--border);
+        color: var(--gold);
+      }
+      #phase-badge.night {
+        background: rgba(120, 0, 0, 0.3);
+        border-color: rgba(200, 0, 0, 0.4);
+        color: #ff5544;
+      }
+      #alive-val {
+        color: #cc8844;
+      }
+      #role-banner {
+        position: fixed;
+        top: 58px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 25;
+        pointer-events: none;
+      }
+      #role-text {
+        font-size: 9px;
+        letter-spacing: 4px;
+        padding: 5px 16px;
+        border-radius: 16px;
+      }
+      #role-text.wolf {
+        background: rgba(180, 20, 0, 0.4);
+        border: 1px solid rgba(220, 40, 0, 0.5);
+        color: #ff5533;
+      }
+      #role-text.hider {
+        background: rgba(0, 50, 120, 0.4);
+        border: 1px solid rgba(40, 100, 200, 0.4);
+        color: #66aaff;
+      }
+      #hide-btn-wrap {
+        position: fixed;
+        bottom: 155px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 22;
+        display: none;
+      }
+      #hide-btn {
+        padding: 10px 28px;
+        background: rgba(0, 40, 100, 0.5);
+        border: 1px solid rgba(40, 100, 200, 0.6);
+        color: #88bbff;
+        font-size: 11px;
+        letter-spacing: 3px;
+        cursor: pointer;
+        font-family: "Cinzel", serif;
+        border-radius: 20px;
+        pointer-events: all;
+        transition: all 0.2s;
+      }
+      #hide-btn.hiding {
+        background: rgba(100, 40, 0, 0.5);
+        border-color: rgba(200, 100, 40, 0.6);
+        color: #ffaa55;
+      }
+      #hide-btn:active {
+        transform: scale(0.93);
+      }
+      #nearby-spot {
+        position: fixed;
+        bottom: 195px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 22;
+        pointer-events: none;
+        display: none;
+        background: rgba(0, 0, 0, 0.75);
+        border: 1px solid rgba(60, 140, 255, 0.5);
+        padding: 5px 14px;
+        border-radius: 20px;
+        font-size: 9px;
+        letter-spacing: 3px;
+        color: #88bbff;
+      }
+      #minimap-wrap {
+        position: fixed;
+        bottom: 158px;
+        right: 12px;
+        z-index: 20;
+        pointer-events: none;
+        display: none;
+      }
+      #minimapCanvas {
+        border: 1px solid var(--border);
+        border-radius: 4px;
+        opacity: 0.82;
+      }
+      #mm-lbl {
+        font-size: 7px;
+        letter-spacing: 2px;
+        color: #7a5a2a;
+        text-align: center;
+        margin-top: 2px;
+      }
+      #controls {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        z-index: 20;
+        pointer-events: none;
+        background: linear-gradient(to top, rgba(0, 0, 0, 0.92), transparent);
+        padding: 8px 14px;
+        display: none;
+        align-items: flex-end;
+        justify-content: space-between;
+      }
+      #joy-outer {
+        position: relative;
+        width: 136px;
+        height: 136px;
+        pointer-events: all;
+      }
+      #joy-base {
+        position: absolute;
+        inset: 0;
+        border-radius: 50%;
+        background: radial-gradient(
+          circle,
+          rgba(35, 22, 8, 0.65),
+          rgba(0, 0, 0, 0.85)
+        );
+        border: 1.5px solid rgba(180, 120, 40, 0.28);
+      }
+      #joy-ring {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 54px;
+        height: 54px;
+        border-radius: 50%;
+        border: 1px solid rgba(180, 120, 40, 0.14);
+      }
+      #joy-knob {
+        position: absolute;
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        background: radial-gradient(
+          circle at 35% 34%,
+          rgba(195, 150, 55, 0.82),
+          rgba(65, 38, 8, 0.96)
+        );
+        border: 1.5px solid rgba(195, 150, 55, 0.65);
+        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.9);
+        top: 43px;
+        left: 43px;
+      }
+      #right-btns {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 6px;
+        pointer-events: all;
+      }
+      #scan-wrap {
+        position: relative;
+        width: 88px;
+        height: 88px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      #scanArcCanvas {
+        position: absolute;
+        inset: 0;
+      }
+      #scan-btn {
+        width: 66px;
+        height: 66px;
+        border-radius: 50%;
+        background: radial-gradient(
+          circle at 36% 34%,
+          rgba(145, 24, 0, 0.88),
+          rgba(44, 0, 0, 0.97)
+        );
+        border: 2px solid rgba(215, 52, 18, 0.78);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        z-index: 2;
+        position: relative;
+        transition: transform 0.15s;
+      }
+      #scan-btn:active {
+        transform: scale(0.91);
+      }
+      #scan-btn.cd {
+        opacity: 0.45;
+        pointer-events: none;
+      }
+      #scan-icon {
+        font-size: 20px;
+        line-height: 1;
+      }
+      #scan-lbl {
+        font-size: 7px;
+        letter-spacing: 2px;
+        color: #ff7755;
+        margin-top: 1px;
+      }
+      #scan-area-lbl {
+        font-size: 7px;
+        letter-spacing: 3px;
+        color: #773322;
+      }
+      #chat-wrap {
+        position: fixed;
+        left: 10px;
+        bottom: 150px;
+        width: 190px;
+        z-index: 20;
+        pointer-events: none;
+        display: none;
+      }
+      #chat-log {
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+        max-height: 80px;
+        overflow: hidden;
+        justify-content: flex-end;
+      }
+      .chat-msg {
+        font-size: 10px;
+        letter-spacing: 1px;
+        padding: 3px 8px;
+        border-radius: 10px;
+        background: rgba(0, 0, 0, 0.6);
+        width: fit-content;
+        max-width: 100%;
+      }
+      .chat-msg.wolf {
+        color: #ff7755;
+        border-left: 2px solid #ff3311;
+      }
+      .chat-msg.hider {
+        color: #88bbff;
+        border-left: 2px solid #3366cc;
+      }
+      .chat-msg.system {
+        color: #886644;
+        font-style: italic;
+      }
+      #anim-banner {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-direction: column;
+        pointer-events: none;
+        z-index: 50;
+        opacity: 0;
+        transition: opacity 0.4s;
+      }
+      #anim-banner.show {
+        opacity: 1;
+      }
+      #ab-title {
+        font-family: "Cinzel Decorative", serif;
+        font-size: clamp(22px, 5.5vw, 48px);
+        letter-spacing: 8px;
+        text-shadow: 0 0 30px currentColor;
+        margin-bottom: 8px;
+        text-align: center;
+      }
+      #ab-sub {
+        font-size: 11px;
+        letter-spacing: 4px;
+        color: #886644;
+      }
+      #caught-overlay {
+        position: fixed;
+        inset: 0;
+        z-index: 40;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        background: rgba(180, 0, 0, 0.2);
+        flex-direction: column;
+        backdrop-filter: blur(2px);
+      }
+      #caught-overlay.show {
+        display: flex;
+      }
+      #caught-title {
+        font-family: "Cinzel Decorative", serif;
+        font-size: 36px;
+        color: #ff3311;
+        letter-spacing: 6px;
+        text-shadow: 0 0 30px #ff0000;
+      }
+      #caught-sub {
+        font-size: 11px;
+        letter-spacing: 3px;
+        color: #ff7755;
+        margin-top: 8px;
+      }
+      #resultScreen {
+        gap: 12px;
+      }
+      .result-title-el {
+        font-family: "Cinzel Decorative", serif;
+        font-size: clamp(22px, 6vw, 46px);
+        letter-spacing: 6px;
+        text-align: center;
+      }
+      .result-stat {
+        font-size: 11px;
+        letter-spacing: 3px;
+        color: #886644;
+        text-align: center;
+        max-width: 280px;
+        line-height: 1.8;
+      }
+      .result-players {
+        width: 280px;
+        background: rgba(0, 0, 0, 0.4);
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        padding: 8px;
+        max-height: 160px;
+        overflow-y: auto;
+      }
+      .rp-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 4px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+      }
+      .rp-row:last-child {
+        border: none;
+      }
+      .rp-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        flex-shrink: 0;
+      }
+      .rp-name {
+        font-size: 10px;
+        letter-spacing: 1px;
+        flex: 1;
+      }
+      .rp-status {
+        font-size: 9px;
+        letter-spacing: 1px;
+      }
+      .rp-status.survived {
+        color: #44cc66;
+      }
+      .rp-status.caught {
+        color: #ff5533;
+      }
+      .rp-status.wolf {
+        color: #ff7755;
+      }
+      #toast {
+        position: fixed;
+        top: 68px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(160, 15, 0, 0.92);
+        color: #ffaa88;
+        padding: 8px 20px;
+        border-radius: 20px;
+        font-size: 11px;
+        letter-spacing: 2px;
+        z-index: 200;
+        opacity: 0;
+        transition: opacity 0.3s;
+        pointer-events: none;
+        white-space: nowrap;
+      }
+      #toast.show {
+        opacity: 1;
+      }
+      #toast.green {
+        background: rgba(20, 100, 30, 0.92);
+        color: #88ffaa;
+      }
+      #pings {
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        z-index: 15;
+      }
+      .ping-el {
+        position: absolute;
+        transform: translate(-50%, -50%);
+        font-size: 11px;
+        letter-spacing: 2px;
+        font-weight: 600;
+        pointer-events: none;
+        transition:
+          opacity 0.7s,
+          top 0.7s;
+        text-shadow: 0 0 8px currentColor;
+      }
+      #sp-score {
+        position: fixed;
+        top: 58px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 20;
+        pointer-events: none;
+        display: none;
+        font-size: 9px;
+        letter-spacing: 3px;
+        color: #886644;
+      }
 
-function addChat(msg){chatMsgs.push(msg);if(chatMsgs.length>6)chatMsgs.shift();document.getElementById('chat-log').innerHTML=chatMsgs.map(m=>`<div class="chat-msg ${m.role}">${m.name}: ${m.text}</div>`).join('');}
-</script>
-</body>
+      /* ══════════════════════════════════════
+   MALATHI STUDIO'S — SPLASH SCREEN
+══════════════════════════════════════ */
+      #studioSplash {
+        position: fixed;
+        inset: 0;
+        z-index: 9000;
+        background: #000;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+      }
+      #studioSplash.fade-out {
+        animation: splashFadeOut 0.8s ease-out forwards;
+      }
+      @keyframes splashFadeOut {
+        0% {
+          opacity: 1;
+        }
+        100% {
+          opacity: 0;
+          pointer-events: none;
+        }
+      }
+      #studioSplash::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: repeating-linear-gradient(
+          0deg,
+          transparent,
+          transparent 2px,
+          rgba(255, 255, 255, 0.018) 2px,
+          rgba(255, 255, 255, 0.018) 4px
+        );
+        pointer-events: none;
+        z-index: 1;
+      }
+      #splashGrain {
+        position: absolute;
+        inset: 0;
+        z-index: 2;
+        pointer-events: none;
+        opacity: 0.06;
+      }
+      #studioWordmark {
+        position: relative;
+        z-index: 5;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0;
+      }
+      #studioName {
+        font-family: "Cinzel Decorative", serif;
+        font-size: clamp(28px, 7vw, 72px);
+        color: #fff;
+        letter-spacing: clamp(6px, 2vw, 18px);
+        text-transform: uppercase;
+        position: relative;
+        opacity: 0;
+        animation:
+          studioReveal 0.6s ease-out 0.4s forwards,
+          studioFlicker 6s step-end 2.5s infinite;
+      }
+      @keyframes studioReveal {
+        0% {
+          opacity: 0;
+          filter: blur(20px);
+          transform: scale(1.15) translateY(10px);
+        }
+        60% {
+          opacity: 1;
+          filter: blur(0);
+          transform: scale(0.98);
+        }
+        100% {
+          opacity: 1;
+          filter: blur(0);
+          transform: scale(1) translateY(0);
+        }
+      }
+      #studioName::before,
+      #studioName::after {
+        content: attr(data-text);
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        font-family: "Cinzel Decorative", serif;
+        font-size: inherit;
+        letter-spacing: inherit;
+        opacity: 0;
+      }
+      #studioName::before {
+        color: #fff;
+        text-shadow: 2px 0 0 #fff;
+        clip-path: inset(0);
+        animation: glitchTop 4s step-end 1.2s infinite;
+      }
+      #studioName::after {
+        color: #999;
+        text-shadow: -2px 0 0 #bbb;
+        animation: glitchBot 4s step-end 1.8s infinite;
+      }
+      @keyframes glitchTop {
+        0%,
+        90%,
+        100% {
+          opacity: 0;
+          transform: none;
+        }
+        91% {
+          opacity: 0.7;
+          transform: translate(-4px, -2px) skewX(-2deg);
+          clip-path: inset(0 0 60% 0);
+        }
+        92% {
+          opacity: 0;
+          transform: none;
+        }
+        94% {
+          opacity: 0.5;
+          transform: translate(4px, 0) skewX(1deg);
+          clip-path: inset(20% 0 40% 0);
+        }
+        95% {
+          opacity: 0;
+          transform: none;
+        }
+      }
+      @keyframes glitchBot {
+        0%,
+        88%,
+        100% {
+          opacity: 0;
+          transform: none;
+        }
+        89% {
+          opacity: 0.6;
+          transform: translate(3px, 1px) skewX(1deg);
+          clip-path: inset(55% 0 0 0);
+        }
+        90% {
+          opacity: 0;
+          transform: none;
+        }
+        93% {
+          opacity: 0.4;
+          transform: translate(-3px, 2px);
+          clip-path: inset(70% 0 0 0);
+        }
+        94% {
+          opacity: 0;
+          transform: none;
+        }
+      }
+      @keyframes studioFlicker {
+        0%,
+        96%,
+        100% {
+          text-shadow: 0 0 30px rgba(255, 255, 255, 0.12);
+        }
+        97% {
+          text-shadow:
+            0 0 2px rgba(255, 255, 255, 0.9),
+            0 0 40px rgba(255, 255, 255, 0.4);
+        }
+        97.5% {
+          text-shadow: 0 0 30px rgba(255, 255, 255, 0.12);
+        }
+        98% {
+          text-shadow:
+            0 0 2px rgba(255, 255, 255, 0.9),
+            0 0 40px rgba(255, 255, 255, 0.4);
+        }
+        98.5% {
+          text-shadow: 0 0 30px rgba(255, 255, 255, 0.12);
+        }
+      }
+      #studioDivider {
+        width: 0;
+        height: 1px;
+        background: linear-gradient(to right, transparent, #fff, transparent);
+        margin: 18px 0 14px;
+        opacity: 0;
+        animation: dividerExpand 0.7s ease-out 1s forwards;
+      }
+      @keyframes dividerExpand {
+        from {
+          width: 0;
+          opacity: 0;
+        }
+        to {
+          width: clamp(200px, 50vw, 420px);
+          opacity: 0.4;
+        }
+      }
+      #studioTagline {
+        font-family: "Cinzel", serif;
+        font-size: clamp(7px, 1.4vw, 11px);
+        color: #333;
+        letter-spacing: clamp(3px, 1.5vw, 8px);
+        text-transform: uppercase;
+        opacity: 0;
+        animation: taglineIn 0.5s ease-out 1.3s forwards;
+      }
+      @keyframes taglineIn {
+        from {
+          opacity: 0;
+        }
+        to {
+          opacity: 1;
+        }
+      }
+      #splashSkip {
+        position: absolute;
+        bottom: 28px;
+        left: 50%;
+        transform: translateX(-50%);
+        font-family: "Cinzel", serif;
+        font-size: 8px;
+        letter-spacing: 5px;
+        color: #222;
+        z-index: 10;
+        opacity: 0;
+        animation: skipBlink 1.5s ease-in-out 2s infinite;
+      }
+      @keyframes skipBlink {
+        0%,
+        100% {
+          opacity: 0;
+        }
+        50% {
+          opacity: 1;
+        }
+      }
+      .splash-corner {
+        position: absolute;
+        width: 40px;
+        height: 40px;
+        z-index: 6;
+        opacity: 0;
+        animation: cornerIn 0.5s ease-out 1.1s forwards;
+      }
+      @keyframes cornerIn {
+        from {
+          opacity: 0;
+        }
+        to {
+          opacity: 0.25;
+        }
+      }
+      .splash-corner.tl {
+        top: 24px;
+        left: 24px;
+        border-top: 1px solid #fff;
+        border-left: 1px solid #fff;
+      }
+      .splash-corner.tr {
+        top: 24px;
+        right: 24px;
+        border-top: 1px solid #fff;
+        border-right: 1px solid #fff;
+      }
+      .splash-corner.bl {
+        bottom: 24px;
+        left: 24px;
+        border-bottom: 1px solid #fff;
+        border-left: 1px solid #fff;
+      }
+      .splash-corner.br {
+        bottom: 24px;
+        right: 24px;
+        border-bottom: 1px solid #fff;
+        border-right: 1px solid #fff;
+      }
+      #splashRoll {
+        position: absolute;
+        inset: 0;
+        z-index: 8;
+        pointer-events: none;
+        background: linear-gradient(
+          to bottom,
+          transparent 40%,
+          rgba(255, 255, 255, 0.04) 50%,
+          transparent 60%
+        );
+        animation: rollSweep 0.05s linear 0.2s 3;
+      }
+      @keyframes rollSweep {
+        from {
+          transform: translateY(-100%);
+        }
+        to {
+          transform: translateY(100%);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <!-- ═══ MALATHI STUDIO'S SPLASH ═══ -->
+    <div id="studioSplash" onclick="dismissSplash()">
+      <div id="splashRoll"></div>
+      <canvas id="splashGrain"></canvas>
+      <div class="splash-corner tl"></div>
+      <div class="splash-corner tr"></div>
+      <div class="splash-corner bl"></div>
+      <div class="splash-corner br"></div>
+      <div id="studioWordmark">
+        <div id="studioName" data-text="MALATHI STUDIO'S">MALATHI STUDIO'S</div>
+        <div id="studioDivider"></div>
+        <div id="studioTagline">Crafting Worlds · Forging Legends</div>
+      </div>
+      <div id="splashSkip">TAP TO ENTER</div>
+    </div>
+
+    <div id="rotate-warn">
+      <div style="font-size: 52px">📱</div>
+      <div
+        style="
+          font-family: &quot;Cinzel&quot;, serif;
+          font-size: 16px;
+          letter-spacing: 4px;
+          color: #e8c060;
+          text-align: center;
+        "
+      >
+        ROTATE TO LANDSCAPE
+      </div>
+      <div
+        style="
+          font-size: 10px;
+          letter-spacing: 3px;
+          color: #664422;
+          text-align: center;
+        "
+      >
+        THIS GAME REQUIRES<br />HORIZONTAL MODE
+      </div>
+    </div>
+    <div id="rotate-msg">
+      <div class="rot-icon">📱</div>
+      <div class="rot-text">ROTATE YOUR DEVICE</div>
+      <div class="rot-sub">LANDSCAPE MODE REQUIRED</div>
+    </div>
+    <canvas id="gameCanvas"></canvas>
+    <canvas id="darkCanvas"></canvas>
+    <div id="pings"></div>
+
+    <!-- ═══ TITLE SCREEN ═══ -->
+    <div class="screen screen-bg" id="titleScreen">
+      <div class="title-glow"></div>
+      <canvas class="title-particles" id="particleCanvas"></canvas>
+      <div class="title-art">WEREWOLF<br />HUNT</div>
+      <div class="title-wolf">⚔ HUNT OR BE HUNTED ⚔</div>
+      <div class="title-divider"></div>
+      <button class="main-btn primary" onclick="gotoMode()">
+        ▶ &nbsp; PLAY
+      </button>
+      <button class="main-btn" onclick="showHowToPlay()">HOW TO PLAY</button>
+      <div class="version-tag">V 1.0.0 &nbsp;·&nbsp; WEREWOLF HUNT</div>
+    </div>
+
+    <!-- ═══ MODE SELECT ═══ -->
+    <div class="screen screen-bg hide" id="modeScreen">
+      <div class="mode-back" onclick="showScreen('titleScreen')">← BACK</div>
+      <div class="mode-title">SELECT MODE</div>
+      <div class="mode-sub">CHOOSE YOUR HUNT</div>
+      <div class="mode-cards">
+        <div class="mode-card" onclick="startSinglePlayer()">
+          <span class="mode-card-icon">🐺</span>
+          <div class="mode-card-title">SINGLE PLAYER</div>
+          <div class="mode-card-desc">
+            Hunt AI survivors across the dark compound. No server needed.
+          </div>
+        </div>
+        <div class="mode-card" onclick="gotoMultiplayer()">
+          <span class="mode-card-icon">👥</span>
+          <div class="mode-card-title">MULTIPLAYER</div>
+          <div class="mode-card-desc">
+            Play with real players online. Create or join a room with a code.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ HOW TO PLAY ═══ -->
+    <div class="screen screen-bg hide" id="howScreen">
+      <div class="mode-back" onclick="showScreen('titleScreen')">← BACK</div>
+      <div class="mode-title" style="margin-bottom: 6px">HOW TO PLAY</div>
+      <div
+        style="
+          max-width: 320px;
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+          padding: 0 16px;
+        "
+      >
+        <div
+          style="
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 14px 16px;
+          "
+        >
+          <div
+            style="
+              font-size: 10px;
+              letter-spacing: 3px;
+              color: #ff7755;
+              margin-bottom: 6px;
+            "
+          >
+            🐺 WEREWOLF
+          </div>
+          <div
+            style="
+              font-size: 11px;
+              color: #886644;
+              line-height: 1.8;
+              letter-spacing: 1px;
+            "
+          >
+            Catch all hiders before the timer runs out. Use the SCAN button to
+            detect nearby prey. After 20 seconds the lights go out — your vision
+            is much better in darkness.
+          </div>
+        </div>
+        <div
+          style="
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 14px 16px;
+          "
+        >
+          <div
+            style="
+              font-size: 10px;
+              letter-spacing: 3px;
+              color: #66aaff;
+              margin-bottom: 6px;
+            "
+          >
+            🏃 HIDER
+          </div>
+          <div
+            style="
+              font-size: 11px;
+              color: #886644;
+              line-height: 1.8;
+              letter-spacing: 1px;
+            "
+          >
+            Survive until the timer ends. Walk near glowing blue circles to find
+            hiding spots. Press HIDE to become invisible. Avoid the werewolf —
+            especially in the dark.
+          </div>
+        </div>
+        <div
+          style="
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 14px 16px;
+          "
+        >
+          <div
+            style="
+              font-size: 10px;
+              letter-spacing: 3px;
+              color: var(--gold);
+              margin-bottom: 6px;
+            "
+          >
+            🕹 CONTROLS
+          </div>
+          <div
+            style="
+              font-size: 11px;
+              color: #886644;
+              line-height: 1.8;
+              letter-spacing: 1px;
+            "
+          >
+            Left joystick to move · SCAN button (wolf only) · HIDE button
+            (hiders) · WASD keys on desktop · Space = scan
+          </div>
+        </div>
+      </div>
+      <button
+        class="main-btn"
+        style="margin-top: 20px; width: 200px"
+        onclick="showScreen('titleScreen')"
+      >
+        GOT IT
+      </button>
+    </div>
+
+    <!-- ═══ MULTIPLAYER SCREEN ═══ -->
+    <div class="screen screen-bg hide" id="multiScreen">
+      <div class="mode-back" onclick="showScreen('modeScreen')">← BACK</div>
+      <div class="mode-title" style="margin-bottom: 6px">MULTIPLAYER</div>
+      <div class="mode-sub">ONLINE CO-OP HORROR</div>
+      <div class="mode-cards">
+        <div class="mode-card" onclick="gotoSetup('create')">
+          <span class="mode-card-icon">🏠</span>
+          <div class="mode-card-title">CREATE ROOM</div>
+          <div class="mode-card-desc">
+            Host a new game. Share the room code with friends.
+          </div>
+        </div>
+        <div class="mode-card" onclick="gotoSetup('join')">
+          <span class="mode-card-icon">🚪</span>
+          <div class="mode-card-title">JOIN ROOM</div>
+          <div class="mode-card-desc">
+            Enter a 4-letter code to join a friend's game.
+          </div>
+        </div>
+      </div>
+      <div
+        style="
+          margin-top: 20px;
+          background: rgba(180, 120, 0, 0.1);
+          border: 1px solid var(--border);
+          border-radius: 8px;
+          padding: 12px 20px;
+          max-width: 320px;
+          text-align: center;
+        "
+      >
+        <div
+          style="
+            font-size: 9px;
+            letter-spacing: 3px;
+            color: var(--gold2);
+            margin-bottom: 6px;
+          "
+        >
+          SERVER REQUIRED
+        </div>
+        <div
+          style="
+            font-size: 10px;
+            color: #664422;
+            line-height: 1.7;
+            letter-spacing: 1px;
+          "
+        >
+          Multiplayer needs the server running. See the deployment guide for
+          setup instructions.
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ SETUP SCREEN ═══ -->
+    <div class="screen screen-bg hide" id="setupScreen">
+      <div class="mode-back" id="setup-back-btn">← BACK</div>
+      <div id="setup-inner"></div>
+    </div>
+
+    <!-- ═══ LOBBY ═══ -->
+    <div class="screen screen-bg hide" id="lobbyScreen">
+      <div class="lobby-code-wrap">
+        <div class="lobby-code-label">ROOM CODE — SHARE WITH FRIENDS</div>
+        <div class="lobby-code" id="lobby-code">????</div>
+        <div class="lobby-hint">UP TO 6 PLAYERS</div>
+      </div>
+      <div class="lobby-list" id="lobby-list"></div>
+      <div class="lobby-status" id="lobby-status">Waiting for players...</div>
+      <button
+        class="main-btn"
+        id="start-btn"
+        onclick="requestStart()"
+        style="display: none; margin-top: 10px; width: 220px"
+      >
+        BEGIN THE HUNT
+      </button>
+      <button
+        class="main-btn danger"
+        onclick="leaveGame()"
+        style="margin-top: 6px; width: 220px"
+      >
+        LEAVE ROOM
+      </button>
+    </div>
+
+    <!-- ═══ RESULT ═══ -->
+    <div class="screen screen-bg hide" id="resultScreen">
+      <div class="result-title-el" id="result-title-el">HUNT ENDS</div>
+      <div class="result-stat" id="result-stat-el"></div>
+      <div class="result-players" id="result-players-el"></div>
+      <button
+        class="main-btn"
+        onclick="backToTitle()"
+        style="margin-top: 16px; width: 220px"
+      >
+        MAIN MENU
+      </button>
+      <button class="main-btn" onclick="playAgain()" style="width: 220px">
+        PLAY AGAIN
+      </button>
+    </div>
+
+    <!-- ═══ HUD ═══ -->
+    <div id="hud" style="display: none">
+      <div id="topbar">
+        <div class="hud-cell">
+          <div class="hud-lbl">TIME</div>
+          <div class="hud-val" id="timer-val">02:00</div>
+        </div>
+        <div id="phase-badge">DAYLIGHT</div>
+        <div class="hud-cell">
+          <div class="hud-lbl">ALIVE</div>
+          <div class="hud-val" id="alive-val">?</div>
+        </div>
+      </div>
+    </div>
+    <div id="role-banner" style="display: none">
+      <div id="role-text">HIDER</div>
+    </div>
+    <div id="sp-score"></div>
+    <div id="nearby-spot">HIDING SPOT NEARBY</div>
+    <div id="hide-btn-wrap">
+      <button id="hide-btn" onclick="toggleHide()">HIDE HERE</button>
+    </div>
+    <div id="minimap-wrap">
+      <canvas id="minimapCanvas" width="100" height="82"></canvas>
+      <div id="mm-lbl">MAP</div>
+    </div>
+    <div id="chat-wrap"><div id="chat-log"></div></div>
+    <div id="controls">
+      <div id="joy-outer">
+        <div id="joy-base"><div id="joy-ring"></div></div>
+        <div id="joy-knob"></div>
+      </div>
+      <div id="right-btns">
+        <div id="scan-wrap">
+          <canvas id="scanArcCanvas" width="88" height="88"></canvas>
+          <div id="scan-btn" onclick="doScan()">
+            <span id="scan-icon">🔴</span><span id="scan-lbl">SCAN</span>
+          </div>
+        </div>
+        <div id="scan-area-lbl">SCANNER</div>
+      </div>
+    </div>
+    <div id="anim-banner">
+      <div id="ab-title">LIGHTS OUT</div>
+      <div id="ab-sub">DARKNESS FALLS</div>
+    </div>
+    <div id="caught-overlay">
+      <div id="caught-title">YOU WERE CAUGHT</div>
+      <div id="caught-sub">SPECTATING...</div>
+    </div>
+    <div id="toast"></div>
+
+    <script>
+      "use strict";
+      // ═══════════════════════════════════════════════════
+      //  MALATHI STUDIO'S SPLASH
+      // ═══════════════════════════════════════════════════
+      (function () {
+        const grain = document.getElementById("splashGrain");
+        const gCtx = grain.getContext("2d");
+        function resizeGrain() {
+          grain.width = window.innerWidth;
+          grain.height = window.innerHeight;
+        }
+        resizeGrain();
+        window.addEventListener("resize", resizeGrain);
+        let grainFrame;
+        function drawGrain() {
+          const w = grain.width,
+            h = grain.height;
+          const img = gCtx.createImageData(w, h);
+          const d = img.data;
+          for (let i = 0; i < d.length; i += 4) {
+            const v = (Math.random() * 255) | 0;
+            d[i] = d[i + 1] = d[i + 2] = v;
+            d[i + 3] = 22;
+          }
+          gCtx.putImageData(img, 0, 0);
+          grainFrame = requestAnimationFrame(drawGrain);
+        }
+        drawGrain();
+        let splashTimer = setTimeout(dismissSplash, 4000);
+        window.dismissSplash = function () {
+          clearTimeout(splashTimer);
+          const splash = document.getElementById("studioSplash");
+          cancelAnimationFrame(grainFrame);
+          splash.classList.add("fade-out");
+          setTimeout(() => {
+            splash.style.display = "none";
+          }, 800);
+        };
+      })();
+
+      // ═══════════════════════════════════════════════════
+      //  CANVAS SETUP
+      // ═══════════════════════════════════════════════════
+      const gC = document.getElementById("gameCanvas"),
+        gX = gC.getContext("2d");
+      const dC = document.getElementById("darkCanvas"),
+        dX = dC.getContext("2d");
+      const mmC = document.getElementById("minimapCanvas"),
+        mmX = mmC.getContext("2d");
+      const arcC = document.getElementById("scanArcCanvas"),
+        arcX = arcC.getContext("2d");
+      let W, H;
+      function resize() {
+        W = gC.width = dC.width = window.innerWidth;
+        H = gC.height = dC.height = window.innerHeight;
+      }
+      resize();
+      window.addEventListener("resize", resize);
+
+      // ═══════════════════════════════════════════════════
+      //  TITLE PARTICLES
+      // ═══════════════════════════════════════════════════
+      const pCvs = document.getElementById("particleCanvas");
+      const pCtx = pCvs.getContext("2d");
+      const particles = [];
+      function initParticles() {
+        pCvs.width = window.innerWidth;
+        pCvs.height = window.innerHeight;
+        particles.length = 0;
+        for (let i = 0; i < 60; i++)
+          particles.push({
+            x: Math.random() * pCvs.width,
+            y: Math.random() * pCvs.height,
+            vx: (Math.random() - 0.5) * 0.4,
+            vy: -0.2 - Math.random() * 0.5,
+            life: Math.random(),
+            maxLife: 0.5 + Math.random() * 0.5,
+            r: 0.5 + Math.random() * 1.5,
+            hue: Math.random() > 0.5 ? 30 : 10,
+          });
+      }
+      function animParticles() {
+        if (document.getElementById("titleScreen").classList.contains("hide")) {
+          pCtx.clearRect(0, 0, pCvs.width, pCvs.height);
+          requestAnimationFrame(animParticles);
+          return;
+        }
+        pCtx.clearRect(0, 0, pCvs.width, pCvs.height);
+        for (const p of particles) {
+          p.x += p.vx;
+          p.y += p.vy;
+          p.life -= 0.004;
+          if (p.life <= 0) {
+            p.life = p.maxLife;
+            p.x = Math.random() * pCvs.width;
+            p.y = pCvs.height + 10;
+          }
+          const a = p.life / p.maxLife;
+          pCtx.fillStyle = `hsla(${p.hue},80%,60%,${a * 0.6})`;
+          pCtx.beginPath();
+          pCtx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+          pCtx.fill();
+        }
+        requestAnimationFrame(animParticles);
+      }
+      initParticles();
+      animParticles();
+
+      // ═══════════════════════════════════════════════════
+      //  CONSTANTS
+      // ═══════════════════════════════════════════════════
+      const T = 48,
+        MW = 44,
+        MH = 34;
+      const W_ = 0,
+        FL = 1,
+        WD = 2,
+        ST = 3,
+        CP = 4,
+        GR = 5;
+      const SCAN_RADIUS = 240,
+        SCAN_CD = 10,
+        LIGHT_CUT = 20,
+        GAME_TIME = 120;
+      const WOLF_CATCH_R = 26,
+        HIDE_DETECT_R = 58;
+
+      // ═══════════════════════════════════════════════════
+      //  MAP
+      // ═══════════════════════════════════════════════════
+      const ROOMS_DEF = [
+        [1, 1, 14, 9, WD],
+        [17, 1, 10, 7, CP],
+        [29, 1, 12, 9, FL],
+        [1, 12, 10, 10, ST],
+        [13, 12, 13, 9, WD],
+        [28, 12, 15, 9, CP],
+        [1, 23, 16, 9, FL],
+        [19, 23, 24, 9, GR],
+      ];
+      const CORR_DEF = [
+        [14, 5, 17, 5],
+        [26, 5, 29, 5],
+        [10, 6, 10, 12],
+        [24, 7, 24, 12],
+        [37, 9, 37, 12],
+        [10, 20, 10, 23],
+        [22, 20, 22, 23],
+        [28, 20, 28, 23],
+        [15, 27, 19, 27],
+        [16, 16, 16, 20],
+        [26, 16, 28, 16],
+        [38, 12, 38, 20],
+      ];
+      let mapData = null;
+      function buildMap() {
+        const m = [];
+        for (let y = 0; y < MH; y++) {
+          m[y] = [];
+          for (let x = 0; x < MW; x++) m[y][x] = W_;
+        }
+        for (const [rx, ry, rw, rh, ft] of ROOMS_DEF)
+          for (let y = ry; y < ry + rh && y < MH; y++)
+            for (let x = rx; x < rx + rw && x < MW; x++) m[y][x] = ft;
+        for (const [x1, y1, x2, y2] of CORR_DEF) {
+          let cx = x1,
+            cy = y1;
+          while (cx !== x2 || cy !== y2) {
+            if (cx < MW && cy < MH) m[cy][cx] = ST;
+            if (cx < x2) cx++;
+            else if (cx > x2) cx--;
+            if (cy < y2) cy++;
+            else if (cy > y2) cy--;
+          }
+          if (x2 < MW && y2 < MH) m[y2][x2] = ST;
+        }
+        return m;
+      }
+      function walkable(wx, wy) {
+        const tx = Math.floor(wx / T),
+          ty = Math.floor(wy / T);
+        if (tx < 0 || ty < 0 || tx >= MW || ty >= MH) return false;
+        return mapData[ty][tx] !== W_;
+      }
+
+      // ═══════════════════════════════════════════════════
+      //  HIDING SPOTS
+      // ═══════════════════════════════════════════════════
+      const HIDE_SPOTS = [
+        { id: "h0", x: 3.5, y: 2.5, label: "Under Table" },
+        { id: "h1", x: 7.5, y: 5.5, label: "Behind Pillar" },
+        { id: "h2", x: 12.5, y: 2.5, label: "Behind Pillar" },
+        { id: "h3", x: 18.5, y: 2.5, label: "Behind Shelves" },
+        { id: "h4", x: 24.5, y: 3.5, label: "Under Desk" },
+        { id: "h5", x: 31.5, y: 2.5, label: "Behind Barrels" },
+        { id: "h6", x: 34.5, y: 5.5, label: "Inside Crate" },
+        { id: "h7", x: 14.5, y: 14.5, label: "Under Bed" },
+        { id: "h8", x: 19.5, y: 14.5, label: "Under Bed" },
+        { id: "h9", x: 29.5, y: 14.5, label: "Behind Sarcophagus" },
+        { id: "h10", x: 33.5, y: 14.5, label: "Behind Sarcophagus" },
+        { id: "h11", x: 36.5, y: 17.5, label: "Behind Altar" },
+        { id: "h12", x: 3.5, y: 15.5, label: "Behind Pillar" },
+        { id: "h13", x: 8.5, y: 15.5, label: "Behind Pillar" },
+        { id: "h14", x: 5.5, y: 18.5, label: "Behind Fountain" },
+        { id: "h15", x: 3.5, y: 25.5, label: "Behind Barrels" },
+        { id: "h16", x: 10.5, y: 26.5, label: "Inside Crate" },
+        { id: "h17", x: 21.5, y: 25.5, label: "Behind Tree" },
+        { id: "h18", x: 27.5, y: 25.5, label: "Behind Tree" },
+        { id: "h19", x: 33.5, y: 27.5, label: "In Bushes" },
+        { id: "h20", x: 38.5, y: 25.5, label: "Behind Tree" },
+      ].map((s) => ({ ...s, x: s.x * T, y: s.y * T, occ: 0, cap: 2 }));
+
+      // ═══════════════════════════════════════════════════
+      //  TILE RENDERER
+      // ═══════════════════════════════════════════════════
+      function sr(x, y) {
+        return (
+          (((x * 374761393 + y * 668265263) ^ ((x * 668265263) >> 13)) &
+            0xffff) /
+          65535
+        );
+      }
+      const tileCache = {};
+      function getTile(type, tx, ty) {
+        const k = `${type}_${tx % 6}_${ty % 6}`;
+        if (tileCache[k]) return tileCache[k];
+        const c = document.createElement("canvas");
+        c.width = c.height = T;
+        const t = c.getContext("2d");
+        const n = sr(tx, ty);
+        if (type === W_) {
+          t.fillStyle = `hsl(220,8%,${11 + n * 5}%)`;
+          t.fillRect(0, 0, T, T);
+          const row = ty % 2;
+          t.fillStyle = `hsl(215,7%,${9 + n * 4}%)`;
+          t.fillRect(1, 1, T - 2, T / 2 - 1);
+          t.fillStyle = `hsl(225,7%,${10 + n * 4}%)`;
+          t.fillRect(1, T / 2, T - 2, T / 2 - 1);
+          if (row === 0) {
+            t.strokeStyle = "rgba(0,0,0,0.4)";
+            t.lineWidth = 1;
+            t.strokeRect(0, T / 2, T / 2, T / 2);
+          }
+          t.strokeStyle = "rgba(0,0,0,0.5)";
+          t.lineWidth = 1;
+          t.strokeRect(0, 0, T, T);
+          t.fillStyle = "rgba(255,255,255,0.04)";
+          t.fillRect(0, 0, T, 2);
+          if (n > 0.72) {
+            t.fillStyle = "rgba(0,80,20,0.18)";
+            t.fillRect(0, T - 10, T * n, 10);
+          }
+          if (n > 0.6) {
+            t.strokeStyle = "rgba(0,0,0,0.3)";
+            t.lineWidth = 0.5;
+            t.beginPath();
+            t.moveTo(n * T, 4);
+            t.lineTo(n * T + 6, T - 6);
+            t.stroke();
+          }
+        } else if (type === FL) {
+          const v = 42 + n * 14;
+          t.fillStyle = `hsl(30,5%,${v}%)`;
+          t.fillRect(0, 0, T, T);
+          t.strokeStyle = "rgba(0,0,0,0.3)";
+          t.lineWidth = 1;
+          t.strokeRect(2, 2, T - 4, T - 4);
+          if (n > 0.55) {
+            t.strokeStyle = "rgba(0,0,0,0.18)";
+            t.lineWidth = 0.5;
+            t.beginPath();
+            t.moveTo(5, T / 2 + sr(tx * 2, ty) * 8);
+            t.lineTo(T - 7, T / 2 - sr(tx, ty * 2) * 6);
+            t.stroke();
+          }
+          t.fillStyle = "rgba(255,255,255,0.055)";
+          t.fillRect(3, 3, T / 2 - 5, 3);
+        } else if (type === WD) {
+          const v = 28 + n * 13;
+          t.fillStyle = `hsl(27,42%,${v}%)`;
+          t.fillRect(0, 0, T, T);
+          for (let i = 0; i < 7; i++) {
+            t.strokeStyle = `rgba(0,0,0,${0.07 + sr(tx + i, ty) * 0.07})`;
+            t.lineWidth = 1;
+            t.beginPath();
+            t.moveTo(0, i * (T / 7) + sr(tx, ty + i) * 3);
+            t.lineTo(T, i * (T / 7) + sr(tx + 1, ty + i) * 3);
+            t.stroke();
+          }
+          if (tx % 3 === 0) {
+            t.strokeStyle = "rgba(0,0,0,0.25)";
+            t.lineWidth = 2;
+            t.beginPath();
+            t.moveTo(0, 0);
+            t.lineTo(0, T);
+            t.stroke();
+          }
+          t.fillStyle = "rgba(255,190,70,0.05)";
+          t.fillRect(0, 0, T, 2);
+        } else if (type === ST) {
+          const v = 36 + n * 12;
+          t.fillStyle = `hsl(28,10%,${v}%)`;
+          t.fillRect(0, 0, T, T);
+          for (let i = 0; i < 4; i++)
+            for (let j = 0; j < 4; j++) {
+              const rv = 38 + sr(tx + i, ty + j) * 14;
+              const cx2 = i * 12 + sr(tx + i, ty + j) * 3 + 3,
+                cy2 = j * 12 + sr(tx + j, ty + i) * 3 + 3;
+              t.fillStyle = `hsl(25,8%,${rv}%)`;
+              t.beginPath();
+              t.roundRect(cx2, cy2, 9, 9, 2);
+              t.fill();
+              t.strokeStyle = "rgba(0,0,0,0.22)";
+              t.lineWidth = 0.5;
+              t.stroke();
+            }
+        } else if (type === CP) {
+          const v = 22 + n * 7;
+          t.fillStyle = `hsl(348,56%,${v}%)`;
+          t.fillRect(0, 0, T, T);
+          t.strokeStyle = "rgba(0,0,0,0.18)";
+          t.lineWidth = 1;
+          for (let i = 4; i < T; i += 8) {
+            t.beginPath();
+            t.moveTo(i, 0);
+            t.lineTo(i, T);
+            t.stroke();
+            t.beginPath();
+            t.moveTo(0, i);
+            t.lineTo(T, i);
+            t.stroke();
+          }
+          t.strokeStyle = "rgba(175,115,35,0.22)";
+          t.lineWidth = 1;
+          t.beginPath();
+          t.moveTo(T / 2, 4);
+          t.lineTo(T - 4, T / 2);
+          t.lineTo(T / 2, T - 4);
+          t.lineTo(4, T / 2);
+          t.closePath();
+          t.stroke();
+          t.fillStyle = "rgba(255,255,255,0.03)";
+          t.fillRect(0, 0, T, 2);
+        } else if (type === GR) {
+          const v = 20 + n * 10;
+          t.fillStyle = `hsl(95,30%,${v}%)`;
+          t.fillRect(0, 0, T, T);
+          for (let i = 0; i < 9; i++) {
+            const gx2 = sr(tx + i, ty) * T,
+              gy2 = sr(tx, ty + i) * T;
+            t.fillStyle = `hsl(${100 + n * 25},34%,${22 + n * 8}%)`;
+            t.fillRect(gx2, gy2, 2, 3 + sr(tx + i, ty + i) * 4);
+          }
+          if (n > 0.5) {
+            t.fillStyle = "rgba(80,65,45,0.5)";
+            t.beginPath();
+            t.arc(
+              sr(tx * 3, ty) * (T - 6) + 3,
+              sr(tx, ty * 3) * (T - 6) + 3,
+              2,
+              0,
+              Math.PI * 2,
+            );
+            t.fill();
+          }
+        }
+        tileCache[k] = c;
+        return c;
+      }
+
+      // ═══════════════════════════════════════════════════
+      //  PROPS
+      // ═══════════════════════════════════════════════════
+      const PROPS = [
+        { tx: 3, ty: 2, t: "table_l" },
+        { tx: 5, ty: 2, t: "table_l" },
+        { tx: 7, ty: 2, t: "table_l" },
+        { tx: 3, ty: 5, t: "chair" },
+        { tx: 6, ty: 5, t: "chair" },
+        { tx: 9, ty: 5, t: "chair" },
+        { tx: 2, ty: 2, t: "pillar" },
+        { tx: 12, ty: 2, t: "pillar" },
+        { tx: 2, ty: 8, t: "pillar" },
+        { tx: 12, ty: 8, t: "pillar" },
+        { tx: 7, ty: 7, t: "fireplace" },
+        { tx: 17, ty: 2, t: "shelf" },
+        { tx: 18, ty: 2, t: "shelf" },
+        { tx: 19, ty: 2, t: "shelf" },
+        { tx: 20, ty: 2, t: "shelf" },
+        { tx: 21, ty: 2, t: "shelf" },
+        { tx: 22, ty: 2, t: "shelf" },
+        { tx: 17, ty: 4, t: "shelf" },
+        { tx: 18, ty: 4, t: "shelf" },
+        { tx: 19, ty: 4, t: "shelf" },
+        { tx: 20, ty: 4, t: "shelf" },
+        { tx: 24, ty: 3, t: "desk" },
+        { tx: 25, ty: 5, t: "chair" },
+        { tx: 29, ty: 2, t: "barrel" },
+        { tx: 30, ty: 2, t: "barrel" },
+        { tx: 31, ty: 2, t: "barrel" },
+        { tx: 32, ty: 2, t: "barrel" },
+        { tx: 29, ty: 5, t: "crate" },
+        { tx: 31, ty: 5, t: "crate" },
+        { tx: 33, ty: 4, t: "crate" },
+        { tx: 36, ty: 3, t: "barrel" },
+        { tx: 14, ty: 13, t: "bed" },
+        { tx: 16, ty: 13, t: "bed" },
+        { tx: 19, ty: 13, t: "bed" },
+        { tx: 14, ty: 18, t: "bed" },
+        { tx: 17, ty: 18, t: "bed" },
+        { tx: 21, ty: 15, t: "table_s" },
+        { tx: 29, ty: 13, t: "sarc" },
+        { tx: 31, ty: 13, t: "sarc" },
+        { tx: 33, ty: 13, t: "sarc" },
+        { tx: 29, ty: 18, t: "sarc" },
+        { tx: 32, ty: 18, t: "sarc" },
+        { tx: 36, ty: 15, t: "altar" },
+        { tx: 3, ty: 14, t: "pillar" },
+        { tx: 8, ty: 14, t: "pillar" },
+        { tx: 3, ty: 20, t: "pillar" },
+        { tx: 8, ty: 20, t: "pillar" },
+        { tx: 5, ty: 17, t: "fountain" },
+        { tx: 2, ty: 25, t: "barrel" },
+        { tx: 4, ty: 25, t: "crate" },
+        { tx: 7, ty: 26, t: "barrel" },
+        { tx: 10, ty: 24, t: "crate" },
+        { tx: 20, ty: 25, t: "tree" },
+        { tx: 23, ty: 27, t: "tree" },
+        { tx: 27, ty: 25, t: "tree" },
+        { tx: 31, ty: 26, t: "tree" },
+        { tx: 35, ty: 24, t: "tree" },
+        { tx: 38, ty: 27, t: "tree" },
+        { tx: 22, ty: 28, t: "bush" },
+        { tx: 25, ty: 26, t: "bush" },
+        { tx: 29, ty: 28, t: "bush" },
+        { tx: 33, ty: 25, t: "bush" },
+        { tx: 37, ty: 26, t: "bush" },
+      ];
+
+      function drawProp(p, cx, cy) {
+        const sx = p.tx * T - cx + T / 2,
+          sy = p.ty * T - cy + T / 2;
+        if (sx < -T * 2 || sx > W + T * 2 || sy < -T * 2 || sy > H + T * 2)
+          return;
+        const FT = performance.now() / 1000;
+        gX.save();
+        gX.translate(sx, sy);
+        const t = p.t;
+        if (t === "pillar") {
+          gX.fillStyle = "#484038";
+          gX.beginPath();
+          gX.arc(0, 0, 11, 0, Math.PI * 2);
+          gX.fill();
+          gX.fillStyle = "#645850";
+          gX.beginPath();
+          gX.arc(-2, -2, 9, 0, Math.PI * 2);
+          gX.fill();
+        } else if (t === "table_l") {
+          gX.fillStyle = "#503318";
+          gX.fillRect(-22, -9, 44, 18);
+          gX.fillStyle = "rgba(255,195,75,0.12)";
+          gX.fillRect(-22, -9, 44, 5);
+          gX.strokeStyle = "rgba(0,0,0,0.45)";
+          gX.lineWidth = 1;
+          gX.strokeRect(-22, -9, 44, 18);
+        } else if (t === "table_s") {
+          gX.fillStyle = "#503318";
+          gX.fillRect(-14, -10, 28, 20);
+          gX.strokeStyle = "rgba(0,0,0,0.4)";
+          gX.lineWidth = 1;
+          gX.strokeRect(-14, -10, 28, 20);
+        } else if (t === "chair") {
+          gX.fillStyle = "#382010";
+          gX.fillRect(-8, -9, 16, 14);
+          gX.fillStyle = "#482a18";
+          gX.fillRect(-8, -16, 16, 9);
+        } else if (t === "shelf") {
+          gX.fillStyle = "#381e0c";
+          gX.fillRect(-20, -17, 40, 34);
+          for (let i = 0; i < 7; i++) {
+            gX.fillStyle = `hsl(${i * 42 + 10},62%,33%)`;
+            gX.fillRect(-18 + i * 6, -15, 5, 28);
+          }
+          gX.fillStyle = "rgba(0,0,0,0.3)";
+          gX.fillRect(-20, -17, 40, 4);
+        } else if (t === "desk") {
+          gX.fillStyle = "#4a2c12";
+          gX.fillRect(-18, -12, 36, 24);
+          gX.fillStyle = "rgba(215,205,175,0.7)";
+          gX.fillRect(-10, -8, 14, 12);
+          gX.fillRect(-2, -10, 10, 9);
+        } else if (t === "bed") {
+          gX.fillStyle = "#381e0a";
+          gX.fillRect(-20, -15, 40, 30);
+          gX.fillStyle = "#62707a";
+          gX.fillRect(-18, -13, 36, 24);
+          gX.fillStyle = "rgba(255,255,255,0.18)";
+          gX.fillRect(-14, -2, 28, 10);
+          gX.fillStyle = "#483025";
+          gX.fillRect(-20, -20, 40, 8);
+        } else if (t === "barrel") {
+          gX.fillStyle = "#482e0c";
+          gX.beginPath();
+          gX.ellipse(0, 0, 12, 17, 0, 0, Math.PI * 2);
+          gX.fill();
+          gX.strokeStyle = "rgba(100,65,18,0.85)";
+          gX.lineWidth = 2;
+          gX.beginPath();
+          gX.ellipse(0, -5, 11, 4, 0, 0, Math.PI * 2);
+          gX.stroke();
+          gX.beginPath();
+          gX.ellipse(0, 5, 11, 4, 0, 0, Math.PI * 2);
+          gX.stroke();
+        } else if (t === "crate") {
+          gX.fillStyle = "#584018";
+          gX.fillRect(-17, -15, 34, 30);
+          gX.strokeStyle = "rgba(0,0,0,0.45)";
+          gX.lineWidth = 1.5;
+          gX.strokeRect(-17, -15, 34, 30);
+          gX.beginPath();
+          gX.moveTo(-17, -15);
+          gX.lineTo(17, 15);
+          gX.moveTo(17, -15);
+          gX.lineTo(-17, 15);
+          gX.stroke();
+        } else if (t === "sarc") {
+          gX.fillStyle = "#555048";
+          gX.fillRect(-19, -11, 38, 22);
+          gX.fillStyle = "#6e6860";
+          gX.fillRect(-17, -9, 34, 18);
+          gX.strokeStyle = "rgba(95,85,75,0.85)";
+          gX.lineWidth = 1;
+          gX.strokeRect(-19, -11, 38, 22);
+        } else if (t === "altar") {
+          gX.fillStyle = "#352830";
+          gX.fillRect(-23, -15, 46, 30);
+          gX.fillStyle = "#581e1e";
+          gX.fillRect(-19, -10, 38, 20);
+          const fl = Math.sin(FT) * 0.2 + 0.75;
+          gX.fillStyle = "#ddd5b5";
+          gX.fillRect(-15, -22, 6, 9);
+          gX.fillRect(9, -22, 6, 9);
+          gX.fillStyle = `rgba(255,100,0,${fl * 0.9})`;
+          gX.beginPath();
+          gX.arc(-12, -24, 4, 0, Math.PI * 2);
+          gX.fill();
+          gX.beginPath();
+          gX.arc(12, -24, 4, 0, Math.PI * 2);
+          gX.fill();
+        } else if (t === "fireplace") {
+          gX.fillStyle = "#383028";
+          gX.fillRect(-25, -15, 50, 30);
+          gX.fillStyle = "#181208";
+          gX.fillRect(-19, -11, 38, 24);
+          const fl2 = Math.sin(FT * 1.4) * 0.18 + 0.72;
+          gX.fillStyle = `rgba(255,${75 + Math.sin(FT * 1.6) * 22},0,${fl2})`;
+          gX.beginPath();
+          gX.ellipse(0, 4, 13, 9, 0, 0, Math.PI * 2);
+          gX.fill();
+          gX.fillStyle = `rgba(255,175,0,${fl2 * 0.8})`;
+          gX.beginPath();
+          gX.ellipse(-2, 0, 9, 11, 0, 0, Math.PI * 2);
+          gX.fill();
+        } else if (t === "fountain") {
+          gX.fillStyle = "#605a55";
+          gX.beginPath();
+          gX.arc(0, 0, 19, 0, Math.PI * 2);
+          gX.fill();
+          gX.fillStyle = "#354a65";
+          gX.beginPath();
+          gX.arc(0, 0, 15, 0, Math.PI * 2);
+          gX.fill();
+          const pulse = Math.sin(FT * 2) * 0.3 + 0.5;
+          gX.strokeStyle = `rgba(90,145,210,${pulse})`;
+          gX.lineWidth = 1;
+          gX.beginPath();
+          gX.arc(0, 0, 9, 0, Math.PI * 2);
+          gX.stroke();
+        } else if (t === "tree") {
+          gX.fillStyle = "rgba(0,0,0,0.28)";
+          gX.beginPath();
+          gX.ellipse(5, 15, 17, 8, 0, 0, Math.PI * 2);
+          gX.fill();
+          gX.fillStyle = "#3a2808";
+          gX.fillRect(-6, 4, 12, 18);
+          gX.fillStyle = "#1e4a18";
+          gX.beginPath();
+          gX.arc(0, -4, 22, 0, Math.PI * 2);
+          gX.fill();
+          gX.fillStyle = "#285a20";
+          gX.beginPath();
+          gX.arc(-3, -9, 17, 0, Math.PI * 2);
+          gX.fill();
+        } else if (t === "bush") {
+          gX.fillStyle = "rgba(0,0,0,0.18)";
+          gX.beginPath();
+          gX.ellipse(4, 11, 15, 6, 0, 0, Math.PI * 2);
+          gX.fill();
+          gX.fillStyle = "#244018";
+          gX.beginPath();
+          gX.arc(0, 0, 15, 0, Math.PI * 2);
+          gX.fill();
+          gX.fillStyle = "#345220";
+          gX.beginPath();
+          gX.arc(-4, -3, 11, 0, Math.PI * 2);
+          gX.fill();
+        }
+        gX.restore();
+      }
+
+      // ═══════════════════════════════════════════════════
+      //  CHARACTER DRAWING
+      // ═══════════════════════════════════════════════════
+      function drawWerewolf(x, y, anim, FT) {
+        const bob = anim === "walk" ? Math.sin(FT * 10) * 2.5 : 0;
+        const sw = anim === "walk" ? Math.sin(FT * 10) * 3 : 0;
+        gX.save();
+        gX.translate(x, y + bob);
+        gX.fillStyle = "rgba(0,0,0,0.38)";
+        gX.beginPath();
+        gX.ellipse(3, 17, 15, 5, 0, 0, Math.PI * 2);
+        gX.fill();
+        gX.fillStyle = "#160608";
+        gX.beginPath();
+        gX.moveTo(-14 + sw, 19);
+        gX.quadraticCurveTo(-18, 6, 0, 4);
+        gX.quadraticCurveTo(18, 6, 14 - sw, 19);
+        gX.quadraticCurveTo(0, 24, sw, 19);
+        gX.fill();
+        gX.fillStyle = "#1c080a";
+        gX.beginPath();
+        gX.ellipse(0, 4, 13, 16, 0, 0, Math.PI * 2);
+        gX.fill();
+        gX.fillStyle = "#250e0a";
+        gX.beginPath();
+        gX.ellipse(-11, -2, 9, 6, 0.2, 0, Math.PI * 2);
+        gX.fill();
+        gX.beginPath();
+        gX.ellipse(11, -2, 9, 6, -0.2, 0, Math.PI * 2);
+        gX.fill();
+        const armSw = anim === "walk" ? Math.sin(FT * 10) * 12 : 0;
+        gX.fillStyle = "#1a0a04";
+        gX.save();
+        gX.translate(-16, 4);
+        gX.rotate((armSw * Math.PI) / 180);
+        gX.beginPath();
+        gX.ellipse(0, 0, 5, 9, 0, 0, Math.PI * 2);
+        gX.fill();
+        gX.fillStyle = "#0e0606";
+        gX.beginPath();
+        gX.arc(0, 9, 4, 0, Math.PI * 2);
+        gX.fill();
+        gX.restore();
+        gX.save();
+        gX.translate(16, 4);
+        gX.rotate((-armSw * Math.PI) / 180);
+        gX.fillStyle = "#1a0a04";
+        gX.beginPath();
+        gX.ellipse(0, 0, 5, 9, 0, 0, Math.PI * 2);
+        gX.fill();
+        gX.fillStyle = "#0e0606";
+        gX.beginPath();
+        gX.arc(0, 9, 4, 0, Math.PI * 2);
+        gX.fill();
+        gX.restore();
+        const legSw = anim === "walk" ? Math.sin(FT * 10) * 10 : 0;
+        gX.fillStyle = "#180808";
+        gX.save();
+        gX.translate(-6, 14);
+        gX.rotate((legSw * Math.PI) / 180);
+        gX.beginPath();
+        gX.ellipse(0, 0, 4, 8, 0, 0, Math.PI * 2);
+        gX.fill();
+        gX.restore();
+        gX.save();
+        gX.translate(6, 14);
+        gX.rotate((-legSw * Math.PI) / 180);
+        gX.beginPath();
+        gX.ellipse(0, 0, 4, 8, 0, 0, Math.PI * 2);
+        gX.fill();
+        gX.restore();
+        gX.fillStyle = "#261005";
+        gX.beginPath();
+        gX.arc(0, -12, 14, 0, Math.PI * 2);
+        gX.fill();
+        gX.fillStyle = "#381608";
+        gX.beginPath();
+        gX.ellipse(0, -5, 8, 10, 0, 0, Math.PI * 2);
+        gX.fill();
+        gX.fillStyle = "#180800";
+        gX.beginPath();
+        gX.moveTo(-8, -20);
+        gX.lineTo(-16, -36);
+        gX.lineTo(0, -22);
+        gX.closePath();
+        gX.fill();
+        gX.beginPath();
+        gX.moveTo(8, -20);
+        gX.lineTo(16, -36);
+        gX.lineTo(0, -22);
+        gX.closePath();
+        gX.fill();
+        gX.fillStyle = "rgba(115,18,8,0.55)";
+        gX.beginPath();
+        gX.moveTo(-7, -21);
+        gX.lineTo(-12, -31);
+        gX.lineTo(-1, -22);
+        gX.closePath();
+        gX.fill();
+        gX.beginPath();
+        gX.moveTo(7, -21);
+        gX.lineTo(12, -31);
+        gX.lineTo(1, -22);
+        gX.closePath();
+        gX.fill();
+        const ep = 0.7 + Math.sin(FT * 3) * 0.3;
+        gX.shadowBlur = 18 * ep;
+        gX.shadowColor = "#ff1000";
+        gX.fillStyle = "#ff0e00";
+        gX.beginPath();
+        gX.ellipse(-5, -14, 4, 2.8, 0.12, 0, Math.PI * 2);
+        gX.fill();
+        gX.beginPath();
+        gX.ellipse(5, -14, 4, 2.8, -0.12, 0, Math.PI * 2);
+        gX.fill();
+        gX.shadowBlur = 0;
+        gX.fillStyle = "#0e0404";
+        gX.beginPath();
+        gX.arc(0, -7, 3, 0, Math.PI * 2);
+        gX.fill();
+        gX.restore();
+      }
+
+      const PALS = [
+        { sk: "#e8c8a0", cl: "#1a3a6a", hr: "#2a1a0a" },
+        { sk: "#c8a060", cl: "#3a1a1a", hr: "#0a0806" },
+        { sk: "#a07040", cl: "#1a4a2a", hr: "#1a0a04" },
+        { sk: "#e0b090", cl: "#4a3a1a", hr: "#5a3010" },
+        { sk: "#d09060", cl: "#2a2a4a", hr: "#3a2010" },
+      ];
+      function drawHider(x, y, palIdx, anim, caught, hiding, FT, isSelf) {
+        const bob = anim === "walk" ? Math.sin(FT * 12) * 2 : 0;
+        const p = PALS[palIdx % PALS.length];
+        gX.save();
+        gX.translate(x, y + bob);
+        if (caught) gX.globalAlpha = 0.3;
+        else if (hiding) gX.globalAlpha = 0.4;
+        gX.fillStyle = "rgba(0,0,0,0.28)";
+        gX.beginPath();
+        gX.ellipse(2, 14, 10, 4, 0, 0, Math.PI * 2);
+        gX.fill();
+        const lgSw = anim === "walk" ? Math.sin(FT * 12) * 9 : 0;
+        gX.fillStyle = p.cl;
+        gX.save();
+        gX.translate(-6, 6);
+        gX.rotate((lgSw * Math.PI) / 180);
+        gX.fillRect(-4, 0, 7, 13);
+        gX.restore();
+        gX.save();
+        gX.translate(6, 6);
+        gX.rotate((-lgSw * Math.PI) / 180);
+        gX.fillRect(-3, 0, 7, 13);
+        gX.restore();
+        gX.fillStyle = p.cl;
+        gX.beginPath();
+        gX.roundRect(-9, -8, 18, 14, 3);
+        gX.fill();
+        const armSw2 = anim === "walk" ? Math.sin(FT * 12) * 14 : 0;
+        gX.save();
+        gX.translate(-12, -4);
+        gX.rotate((-armSw2 * Math.PI) / 180);
+        gX.fillRect(-3, 0, 6, 10);
+        gX.fillStyle = p.sk;
+        gX.beginPath();
+        gX.arc(0, 12, 3, 0, Math.PI * 2);
+        gX.fill();
+        gX.restore();
+        gX.save();
+        gX.translate(12, -4);
+        gX.rotate((armSw2 * Math.PI) / 180);
+        gX.fillStyle = p.cl;
+        gX.fillRect(-3, 0, 6, 10);
+        gX.fillStyle = p.sk;
+        gX.beginPath();
+        gX.arc(0, 12, 3, 0, Math.PI * 2);
+        gX.fill();
+        gX.restore();
+        gX.fillStyle = p.sk;
+        gX.fillRect(-4, -11, 8, 5);
+        gX.beginPath();
+        gX.arc(0, -19, 10, 0, Math.PI * 2);
+        gX.fill();
+        gX.fillStyle = p.hr;
+        gX.beginPath();
+        gX.arc(0, -21, 10, Math.PI, Math.PI * 2);
+        gX.fill();
+        gX.fillRect(-10, -22, 20, 5);
+        gX.fillStyle = "#181210";
+        gX.beginPath();
+        gX.arc(-3.5, -19, 2, 0, Math.PI * 2);
+        gX.fill();
+        gX.beginPath();
+        gX.arc(3.5, -19, 2, 0, Math.PI * 2);
+        gX.fill();
+        if (isSelf) {
+          gX.globalAlpha = 1;
+          gX.fillStyle = "rgba(0,0,0,0.6)";
+          gX.beginPath();
+          gX.roundRect(-18, -36, 36, 11, 4);
+          gX.fill();
+          gX.fillStyle = "#88aaff";
+          gX.font = "bold 8px Cinzel";
+          gX.textAlign = "center";
+          gX.fillText("YOU", 0, -27);
+        }
+        gX.restore();
+      }
+
+      // ═══════════════════════════════════════════════════
+      //  SINGLE PLAYER AI
+      // ═══════════════════════════════════════════════════
+      class AIHider {
+        constructor(x, y, id) {
+          this.x = x;
+          this.y = y;
+          this.id = id;
+          this.r = 10;
+          this.caught = false;
+          this.hiding = false;
+          this.hideSpot = null;
+          this.state = "wander";
+          this.vx = 0;
+          this.vy = 0;
+          this.wt = 0;
+          this.wdx = 0;
+          this.wdy = 0;
+          this.anim = "idle";
+        }
+        update(dt, px, py, phase) {
+          if (this.caught) return;
+          const dx = px - this.x,
+            dy = py - this.y,
+            dist = Math.hypot(dx, dy);
+          const dr = phase === "day" ? 200 : 80;
+          if (dist < dr && !this.hiding) {
+            this.state = "flee";
+            this.hiding = false;
+          } else if (this.state === "flee" && dist > dr + 80) {
+            this.state = "wander";
+          }
+          if (this.state === "flee") {
+            let best = null,
+              bd = 999;
+            for (const s of HIDE_SPOTS) {
+              if (s.occ >= s.cap) continue;
+              const d = Math.hypot(s.x - this.x, s.y - this.y);
+              if (d < bd) {
+                bd = d;
+                best = s;
+              }
+            }
+            if (best && bd < HIDE_DETECT_R) {
+              if (this.hideSpot) this.hideSpot.occ--;
+              best.occ++;
+              this.hideSpot = best;
+              this.x = best.x;
+              this.y = best.y;
+              this.hiding = true;
+              this.anim = "idle";
+              return;
+            }
+            const ang = Math.atan2(-dy, -dx);
+            this.vx = Math.cos(ang) * 90;
+            this.vy = Math.sin(ang) * 90;
+          } else {
+            if (this.hiding && Math.random() < 0.001) {
+              this.hiding = false;
+              if (this.hideSpot) {
+                this.hideSpot.occ--;
+                this.hideSpot = null;
+              }
+            }
+            if (this.hiding) {
+              this.anim = "idle";
+              return;
+            }
+            this.wt -= dt;
+            if (this.wt <= 0) {
+              this.wt = 1.5 + Math.random() * 2;
+              if (Math.random() < 0.35) {
+                this.wdx = 0;
+                this.wdy = 0;
+              } else {
+                const a = Math.random() * Math.PI * 2;
+                this.wdx = Math.cos(a) * 26;
+                this.wdy = Math.sin(a) * 26;
+              }
+            }
+            this.vx = this.wdx;
+            this.vy = this.wdy;
+          }
+          let nx = this.x + this.vx * dt,
+            ny = this.y + this.vy * dt;
+          if (walkable(nx, this.y)) this.x = nx;
+          else this.vx = 0;
+          if (walkable(this.x, ny)) this.y = ny;
+          else this.vy = 0;
+          this.anim =
+            Math.abs(this.vx) > 5 || Math.abs(this.vy) > 5 ? "walk" : "idle";
+          if (dist < this.r + WOLF_CATCH_R && !this.hiding) {
+            this.caught = true;
+            spawnCatchFX(this.x, this.y);
+          }
+        }
+      }
+
+      // ═══════════════════════════════════════════════════
+      //  GAME STATE
+      // ═══════════════════════════════════════════════════
+      let mode = "";
+      let player = { x: 88, y: 88, vx: 0, vy: 0, anim: "idle", speed: 170 };
+      let aiHiders = [];
+      let cam = { x: 0, y: 0 };
+      let lightPhase = "day";
+      let timeLeft = GAME_TIME,
+        lightCutLeft = LIGHT_CUT;
+      let scanCD = 0;
+      let waveFX = [],
+        catchFX = [];
+      let amHiding = false,
+        myHideSpot = null;
+      let gameRunning = false;
+      let FT = 0;
+      let spCaught = 0;
+      const SP_SPAWNS = [
+        [420, 200],
+        [640, 400],
+        [1100, 130],
+        [990, 550],
+        [300, 580],
+      ];
+
+      // ═══════════════════════════════════════════════════
+      //  SINGLE PLAYER
+      // ═══════════════════════════════════════════════════
+      function startSinglePlayer() {
+        mode = "sp";
+        mapData = buildMap();
+        for (const s of HIDE_SPOTS) s.occ = 0;
+        aiHiders = SP_SPAWNS.map(([x, y], i) => new AIHider(x, y, i));
+        player.x = 88;
+        player.y = 88;
+        lightPhase = "day";
+        timeLeft = GAME_TIME;
+        lightCutLeft = LIGHT_CUT;
+        scanCD = 0;
+        waveFX = [];
+        catchFX = [];
+        spCaught = 0;
+        amHiding = false;
+        myHideSpot = null;
+        gameRunning = true;
+        showGameUI("wolf");
+        showBanner("THE HUNT BEGINS", "Find all 5 survivors");
+        showScreen("");
+      }
+      function spawnCatchFX(x, y) {
+        for (let i = 0; i < 12; i++) {
+          const a = Math.random() * Math.PI * 2,
+            spd = 60 + Math.random() * 100;
+          catchFX.push({
+            x,
+            y,
+            vx: Math.cos(a) * spd,
+            vy: Math.sin(a) * spd,
+            life: 1,
+            color: `hsl(${Math.random() * 40 + 5},90%,58%)`,
+          });
+        }
+        addPingEl(x, y, "#ff6622", "✕ CAUGHT");
+        spCaught++;
+        const alive = aiHiders.filter((h) => !h.caught).length;
+        document.getElementById("sp-score").textContent =
+          `CAUGHT: ${spCaught} / ${aiHiders.length}`;
+        if (alive === 0) endSP(true);
+      }
+      function endSP(won) {
+        gameRunning = false;
+        showScreen("resultScreen");
+        hideGameUI();
+        const rt = document.getElementById("result-title-el");
+        rt.textContent = won ? "HUNT COMPLETE" : "TIME EXPIRED";
+        rt.style.color = won ? "#e8c060" : "#cc4422";
+        document.getElementById("result-stat-el").textContent = won
+          ? `All 5 survivors consumed. You are the apex predator.`
+          : `${spCaught} of ${aiHiders.length} caught — some escaped into dawn.`;
+        document.getElementById("result-players-el").innerHTML = aiHiders
+          .map(
+            (h, i) =>
+              `<div class="rp-row"><div class="rp-dot" style="background:${PALS[i % PALS.length].cl}"></div><div class="rp-name">Survivor ${i + 1}</div><div class="rp-status ${h.caught ? "caught" : "survived"}">${h.caught ? "CAUGHT" : "ESCAPED"}</div></div>`,
+          )
+          .join("");
+      }
+
+      // ═══════════════════════════════════════════════════
+      //  JOYSTICK
+      // ═══════════════════════════════════════════════════
+      let joy = { a: false, sx: 0, sy: 0, dx: 0, dy: 0 };
+      const jBase = document.getElementById("joy-base"),
+        jKnob = document.getElementById("joy-knob");
+      const JR = 42;
+      document.getElementById("joy-outer").addEventListener(
+        "touchstart",
+        (e) => {
+          e.preventDefault();
+          const t = e.touches[0],
+            r = jBase.getBoundingClientRect();
+          joy.sx = r.left + r.width / 2;
+          joy.sy = r.top + r.height / 2;
+          joy.a = true;
+          updJ(t.clientX, t.clientY);
+        },
+        { passive: false },
+      );
+      document.getElementById("joy-outer").addEventListener(
+        "touchmove",
+        (e) => {
+          e.preventDefault();
+          if (!joy.a) return;
+          updJ(e.touches[0].clientX, e.touches[0].clientY);
+        },
+        { passive: false },
+      );
+      ["touchend", "touchcancel"].forEach((ev) =>
+        document.getElementById("joy-outer").addEventListener(
+          ev,
+          (e) => {
+            e.preventDefault();
+            joy.a = false;
+            joy.dx = 0;
+            joy.dy = 0;
+            jKnob.style.left = "43px";
+            jKnob.style.top = "43px";
+          },
+          { passive: false },
+        ),
+      );
+      function updJ(cx, cy) {
+        let dx = cx - joy.sx,
+          dy = cy - joy.sy;
+        const l = Math.hypot(dx, dy);
+        if (l > JR) {
+          dx = (dx / l) * JR;
+          dy = (dy / l) * JR;
+        }
+        joy.dx = dx / JR;
+        joy.dy = dy / JR;
+        jKnob.style.left = 43 + dx + "px";
+        jKnob.style.top = 43 + dy + "px";
+      }
+      const K = {};
+      window.addEventListener("keydown", (e) => {
+        K[e.code] = true;
+        if (e.code === "Space") {
+          e.preventDefault();
+          doScan();
+        }
+        if (e.code === "KeyH") toggleHide();
+      });
+      window.addEventListener("keyup", (e) => (K[e.code] = false));
+
+      // ═══════════════════════════════════════════════════
+      //  SCAN
+      // ═══════════════════════════════════════════════════
+      function doScan() {
+        if (scanCD > 0 || !gameRunning) return;
+        scanCD = SCAN_CD;
+        waveFX.push({ x: player.x, y: player.y, r: 0, alpha: 0.85 });
+        if (mode === "sp") {
+          let n = 0;
+          for (const h of aiHiders) {
+            if (h.caught) continue;
+            const d = Math.hypot(h.x - player.x, h.y - player.y);
+            if (d < SCAN_RADIUS) {
+              n++;
+              addPingEl(
+                h.x,
+                h.y,
+                "#ffcc44",
+                h.hiding ? "📍 HIDING" : "📍 PREY",
+              );
+            }
+          }
+          if (n === 0)
+            addPingEl(player.x, player.y - 40, "#445566", "— CLEAR —");
+        } else if (ws && ws.readyState === WebSocket.OPEN) {
+          ws.send(JSON.stringify({ type: "scan" }));
+        }
+      }
+      function toggleHide() {
+        if (mode === "sp") return;
+        if (mode === "mp" && ws && ws.readyState === WebSocket.OPEN) {
+          if (amHiding) {
+            ws.send(JSON.stringify({ type: "unhide" }));
+          } else {
+            ws.send(JSON.stringify({ type: "hide" }));
+          }
+        }
+      }
+
+      // ═══════════════════════════════════════════════════
+      //  DARKNESS
+      // ═══════════════════════════════════════════════════
+      function drawDarkness(px, py) {
+        if (lightPhase !== "night") {
+          dX.clearRect(0, 0, W, H);
+          return;
+        }
+        dX.fillStyle = "rgb(3,1,1)";
+        dX.fillRect(0, 0, W, H);
+        const R = 175;
+        dX.save();
+        dX.globalCompositeOperation = "destination-out";
+        const g = dX.createRadialGradient(px, py, 0, px, py, R);
+        g.addColorStop(0, "rgba(0,0,0,1)");
+        g.addColorStop(0.32, "rgba(0,0,0,0.96)");
+        g.addColorStop(0.65, "rgba(0,0,0,0.45)");
+        g.addColorStop(1, "rgba(0,0,0,0)");
+        dX.fillStyle = g;
+        dX.beginPath();
+        dX.arc(px, py, R, 0, Math.PI * 2);
+        dX.fill();
+        dX.restore();
+        const fl = Math.sin(FT * 1.6) * 0.007 + 0.012;
+        dX.fillStyle = `rgba(40,10,0,${fl})`;
+        dX.fillRect(0, 0, W, H);
+      }
+      function drawHideSpots() {
+        if (mode !== "mp" || myRole !== "hider") return;
+        for (const s of HIDE_SPOTS) {
+          const sx = s.x - cam.x,
+            sy = s.y - cam.y;
+          if (sx < -40 || sx > W + 40 || sy < -40 || sy > H + 40) continue;
+          const full = s.occ >= s.cap;
+          gX.fillStyle = full ? "rgba(180,40,0,0.3)" : "rgba(40,100,200,0.2)";
+          gX.beginPath();
+          gX.arc(sx, sy, 20, 0, Math.PI * 2);
+          gX.fill();
+          gX.strokeStyle = full
+            ? "rgba(200,60,20,0.7)"
+            : "rgba(60,140,255,0.7)";
+          gX.lineWidth = 2;
+          gX.setLineDash([4, 4]);
+          gX.beginPath();
+          gX.arc(sx, sy, 20, 0, Math.PI * 2);
+          gX.stroke();
+          gX.setLineDash([]);
+          gX.font = "12px serif";
+          gX.textAlign = "center";
+          gX.fillStyle = full ? "#ff6644" : "#88bbff";
+          gX.fillText(full ? "✗" : "👁", sx, sy + 5);
+        }
+      }
+
+      // ═══════════════════════════════════════════════════
+      //  MINIMAP
+      // ═══════════════════════════════════════════════════
+      function drawMM() {
+        mmX.fillStyle = "rgba(8,6,4,0.92)";
+        mmX.fillRect(0, 0, 100, 82);
+        if (!mapData) return;
+        for (let y = 0; y < MH; y++)
+          for (let x = 0; x < MW; x++) {
+            const t = mapData[y][x];
+            if (t === W_) continue;
+            const c = {
+              [FL]: "#585250",
+              [WD]: "#583e1a",
+              [ST]: "#484540",
+              [CP]: "#682020",
+              [GR]: "#2a4820",
+            };
+            mmX.fillStyle = c[t] || "#444";
+            mmX.fillRect(
+              (x * 100) / MW,
+              (y * 82) / MH,
+              100 / MW + 0.5,
+              82 / MH + 0.5,
+            );
+          }
+        mmX.fillStyle = "#ff3311";
+        mmX.shadowBlur = 5;
+        mmX.shadowColor = "#ff0000";
+        mmX.beginPath();
+        mmX.arc(
+          (player.x / (MW * T)) * 100,
+          (player.y / (MH * T)) * 82,
+          3.5,
+          0,
+          Math.PI * 2,
+        );
+        mmX.fill();
+        mmX.shadowBlur = 0;
+        if (mode === "sp") {
+          for (const h of aiHiders) {
+            if (h.caught) continue;
+            mmX.fillStyle =
+              lightPhase === "day" ? "#ffcc44" : "rgba(255,200,60,0.25)";
+            mmX.beginPath();
+            mmX.arc(
+              (h.x / (MW * T)) * 100,
+              (h.y / (MH * T)) * 82,
+              2,
+              0,
+              Math.PI * 2,
+            );
+            mmX.fill();
+          }
+        }
+        if (mode === "mp" && gameState?.players) {
+          for (const [id, p] of Object.entries(gameState.players)) {
+            if (id === myId || p.caught) continue;
+            mmX.fillStyle =
+              p.role === "wolf" ? "#ff4411" : p.color || "#88bbff";
+            mmX.beginPath();
+            mmX.arc(
+              (p.x / (MW * T)) * 100,
+              (p.y / (MH * T)) * 82,
+              2,
+              0,
+              Math.PI * 2,
+            );
+            mmX.fill();
+          }
+        }
+        mmX.strokeStyle = "rgba(220,160,40,0.35)";
+        mmX.lineWidth = 1;
+        mmX.strokeRect(
+          (cam.x / (MW * T)) * 100,
+          (cam.y / (MH * T)) * 82,
+          (W / (MW * T)) * 100,
+          (H / (MH * T)) * 82,
+        );
+      }
+
+      // ═══════════════════════════════════════════════════
+      //  SCAN ARC UI
+      // ═══════════════════════════════════════════════════
+      function drawArc(pct, onCD) {
+        arcX.clearRect(0, 0, 88, 88);
+        arcX.strokeStyle = "rgba(55,18,8,0.85)";
+        arcX.lineWidth = 6;
+        arcX.beginPath();
+        arcX.arc(44, 44, 38, 0, Math.PI * 2);
+        arcX.stroke();
+        arcX.strokeStyle = onCD ? "#991e08" : "#ff4422";
+        arcX.lineWidth = 6;
+        arcX.lineCap = "round";
+        arcX.beginPath();
+        arcX.arc(44, 44, 38, -Math.PI / 2, -Math.PI / 2 + pct * Math.PI * 2);
+        arcX.stroke();
+        const icon = document.getElementById("scan-icon"),
+          lbl = document.getElementById("scan-lbl"),
+          btn = document.getElementById("scan-btn");
+        if (onCD) {
+          btn.classList.add("cd");
+          icon.textContent = Math.ceil(scanCD) + "s";
+          icon.style.fontSize = "16px";
+          lbl.textContent = "WAIT";
+        } else {
+          btn.classList.remove("cd");
+          icon.textContent = "🔴";
+          icon.style.fontSize = "20px";
+          lbl.textContent = "SCAN";
+        }
+      }
+
+      // ═══════════════════════════════════════════════════
+      //  PING ELEMENTS
+      // ═══════════════════════════════════════════════════
+      function addPingEl(wx, wy, color, text) {
+        const el = document.createElement("div");
+        el.className = "ping-el";
+        el.style.color = color;
+        el.textContent = text;
+        document.getElementById("pings").appendChild(el);
+        function pos() {
+          el.style.left = wx - cam.x + "px";
+          el.style.top = wy - cam.y + "px";
+        }
+        pos();
+        setTimeout(() => {
+          el.style.opacity = "0";
+          el.style.top = wy - cam.y - 36 + "px";
+        }, 100);
+        setTimeout(() => el.remove(), 900);
+      }
+
+      // ═══════════════════════════════════════════════════
+      //  BANNER & TOAST
+      // ═══════════════════════════════════════════════════
+      function showBanner(title, sub, red = false) {
+        const b = document.getElementById("anim-banner"),
+          t = document.getElementById("ab-title"),
+          s = document.getElementById("ab-sub");
+        t.textContent = title;
+        s.textContent = sub;
+        t.style.color = red ? "#ff3311" : "#e8c060";
+        t.style.textShadow = `0 0 30px ${red ? "#ff0000" : "rgba(220,160,40,0.9)"}`;
+        b.classList.add("show");
+        setTimeout(() => b.classList.remove("show"), 2800);
+      }
+      let toastT = null;
+      function toast(msg, green = false) {
+        const el = document.getElementById("toast");
+        el.textContent = msg;
+        el.className = "show" + (green ? " green" : "");
+        if (toastT) clearTimeout(toastT);
+        toastT = setTimeout(() => (el.className = ""), 2500);
+      }
+
+      // ═══════════════════════════════════════════════════
+      //  GAME LOOP
+      // ═══════════════════════════════════════════════════
+      let lastT = 0,
+        loopRunning = false;
+      function startLoop() {
+        if (!loopRunning) {
+          loopRunning = true;
+          requestAnimationFrame(loop);
+        }
+      }
+      function loop(ts) {
+        const dt = Math.min((ts - lastT) / 1000, 0.05);
+        lastT = ts;
+        FT = ts / 1000;
+        requestAnimationFrame(loop);
+        if (!gameRunning) return;
+        timeLeft -= dt;
+        if (lightCutLeft > 0) {
+          lightCutLeft -= dt;
+          if (lightCutLeft <= 0 && lightPhase === "day") {
+            lightPhase = "night";
+            document.getElementById("phase-badge").textContent = "DARKNESS";
+            document.getElementById("phase-badge").className = "night";
+            showBanner("LIGHTS OUT", "The darkness is yours", true);
+          }
+        }
+        if (scanCD > 0) scanCD = Math.max(0, scanCD - dt);
+        let mx2 = joy.dx,
+          my2 = joy.dy;
+        if (K["KeyW"] || K["ArrowUp"]) my2 = -1;
+        if (K["KeyS"] || K["ArrowDown"]) my2 = 1;
+        if (K["KeyA"] || K["ArrowLeft"]) mx2 = -1;
+        if (K["KeyD"] || K["ArrowRight"]) mx2 = 1;
+        const ml = Math.hypot(mx2, my2);
+        if (ml > 0.01 && !amHiding) {
+          mx2 /= ml;
+          my2 /= ml;
+          const pr = 12;
+          const nx = player.x + mx2 * player.speed * dt,
+            ny = player.y + my2 * player.speed * dt;
+          if (walkable(nx - pr, player.y) && walkable(nx + pr, player.y))
+            player.x = nx;
+          if (walkable(player.x, ny - pr) && walkable(player.x, ny + pr))
+            player.y = ny;
+          player.anim = "walk";
+          if (mode === "mp" && ws?.readyState === 1)
+            ws.send(JSON.stringify({ type: "move", dx: mx2, dy: my2 }));
+        } else {
+          player.anim = "idle";
+        }
+        if (mode === "sp") {
+          for (const h of aiHiders)
+            h.update(dt, player.x, player.y, lightPhase);
+          const alive = aiHiders.filter((h) => !h.caught).length;
+          document.getElementById("alive-val").textContent =
+            `${alive}/${aiHiders.length}`;
+          if (timeLeft <= 0 && alive > 0) {
+            endSP(false);
+            gameRunning = false;
+            return;
+          }
+        }
+        const tcx = player.x - W / 2,
+          tcy = player.y - H / 2;
+        cam.x += (tcx - cam.x) * 0.12;
+        cam.y += (tcy - cam.y) * 0.12;
+        cam.x = Math.max(0, Math.min(cam.x, MW * T - W));
+        cam.y = Math.max(0, Math.min(cam.y, MH * T - H));
+        for (let i = waveFX.length - 1; i >= 0; i--) {
+          const w = waveFX[i];
+          w.r += 280 * dt;
+          w.alpha -= 1.1 * dt;
+          if (w.alpha <= 0) waveFX.splice(i, 1);
+        }
+        for (let i = catchFX.length - 1; i >= 0; i--) {
+          const s = catchFX[i];
+          s.x += s.vx * dt;
+          s.y += s.vy * dt;
+          s.vy += 180 * dt;
+          s.life -= dt;
+          if (s.life <= 0) catchFX.splice(i, 1);
+        }
+        gX.fillStyle = "#0a0806";
+        gX.fillRect(0, 0, W, H);
+        const tx0 = Math.max(0, Math.floor(cam.x / T) - 1),
+          ty0 = Math.max(0, Math.floor(cam.y / T) - 1);
+        const tx1 = Math.min(MW, tx0 + Math.ceil(W / T) + 3),
+          ty1 = Math.min(MH, ty0 + Math.ceil(H / T) + 3);
+        for (let ty = ty0; ty < ty1; ty++)
+          for (let tx = tx0; tx < tx1; tx++)
+            gX.drawImage(
+              getTile(mapData[ty][tx], tx, ty),
+              tx * T - cam.x,
+              ty * T - cam.y,
+              T,
+              T,
+            );
+        for (const p of PROPS) drawProp(p, cam.x, cam.y);
+        drawHideSpots();
+        gX.setLineDash([8, 6]);
+        for (const w of waveFX) {
+          const wx = w.x - cam.x,
+            wy = w.y - cam.y;
+          gX.strokeStyle = `rgba(255,140,20,${w.alpha * 0.45})`;
+          gX.lineWidth = 3;
+          gX.beginPath();
+          gX.arc(wx, wy, w.r, 0, Math.PI * 2);
+          gX.stroke();
+        }
+        gX.setLineDash([]);
+        for (const s of catchFX) {
+          gX.fillStyle = s.color;
+          gX.globalAlpha = s.life;
+          gX.beginPath();
+          gX.arc(s.x - cam.x, s.y - cam.y, 3, 0, Math.PI * 2);
+          gX.fill();
+        }
+        gX.globalAlpha = 1;
+        if (mode === "sp") {
+          for (const h of aiHiders) {
+            if (
+              lightPhase === "night" &&
+              Math.hypot(h.x - player.x, h.y - player.y) > 190
+            )
+              continue;
+            drawHider(
+              h.x - cam.x,
+              h.y - cam.y,
+              h.id,
+              h.anim,
+              h.caught,
+              h.hiding,
+              FT,
+              false,
+            );
+          }
+        }
+        if (mode === "mp" && gameState?.players) {
+          const playerIds = Object.keys(gameState.players);
+          for (const [id, p] of Object.entries(gameState.players)) {
+            if (id === myId) continue;
+            if (p.hiding) {
+              if (myRole === "wolf") continue;
+            }
+            if (lightPhase === "night") {
+              const d = Math.hypot(p.x - player.x, p.y - player.y);
+              if (myRole === "wolf" && d > 190 && p.role === "hider") continue;
+              if (myRole === "hider" && d > 130) continue;
+            }
+            const sx = p.x - cam.x,
+              sy = p.y - cam.y;
+            if (sx < -40 || sx > W + 40 || sy < -40 || sy > H + 40) continue;
+            if (p.role === "wolf") drawWerewolf(sx, sy, p.anim || "idle", FT);
+            else
+              drawHider(
+                sx,
+                sy,
+                playerIds.indexOf(id) % 5,
+                p.anim || "idle",
+                p.caught,
+                p.hiding,
+                FT,
+                false,
+              );
+          }
+        }
+        if (mode === "mp" && amHiding && myHideStart > 0) {
+          const elapsed = Date.now() - myHideStart;
+          const remaining = Math.max(0, (myHideMaxMs - elapsed) / 1000);
+          const pct = Math.min(1, elapsed / myHideMaxMs);
+          const sx = player.x - cam.x,
+            sy = player.y - cam.y - 54;
+          gX.fillStyle = "rgba(0,0,0,0.65)";
+          gX.beginPath();
+          gX.roundRect(sx - 30, sy, 60, 10, 5);
+          gX.fill();
+          const bc =
+            remaining > 3 ? "#44cc66" : remaining > 1 ? "#ffaa22" : "#ff3311";
+          gX.fillStyle = bc;
+          gX.beginPath();
+          gX.roundRect(sx - 30, sy, 60 * (1 - pct), 10, 5);
+          gX.fill();
+          gX.fillStyle = "#fff";
+          gX.font = "bold 9px Cinzel";
+          gX.textAlign = "center";
+          gX.fillText(remaining.toFixed(1) + "s", sx, sy - 3);
+          if (remaining <= 3) {
+            gX.fillStyle =
+              "rgba(255,50,0," + (0.12 + Math.sin(FT * 8) * 0.08) + ")";
+            gX.beginPath();
+            gX.arc(sx, sy + 44, 32, 0, Math.PI * 2);
+            gX.fill();
+          }
+        }
+        if (mode === "sp" || (mode === "mp" && myRole === "wolf"))
+          drawWerewolf(player.x - cam.x, player.y - cam.y, player.anim, FT);
+        else if (mode === "mp" && myRole === "hider")
+          drawHider(
+            player.x - cam.x,
+            player.y - cam.y,
+            0,
+            player.anim,
+            false,
+            amHiding,
+            FT,
+            true,
+          );
+        drawDarkness(player.x - cam.x, player.y - cam.y);
+        drawMM();
+        const rem = Math.max(0, Math.ceil(timeLeft));
+        const tv = document.getElementById("timer-val");
+        tv.textContent =
+          String(Math.floor(rem / 60)).padStart(2, "0") +
+          ":" +
+          String(rem % 60).padStart(2, "0");
+        tv.className = rem < 15 ? "urgent" : "";
+        drawArc(scanCD <= 0 ? 1 : 1 - scanCD / SCAN_CD, scanCD > 0);
+        if (mode === "mp" && myRole === "hider" && !amHiding) {
+          let near = null,
+            bd = 999;
+          for (const s of HIDE_SPOTS) {
+            const d = Math.hypot(s.x - player.x, s.y - player.y);
+            if (d < HIDE_DETECT_R && d < bd) {
+              near = s;
+              bd = d;
+            }
+          }
+          const ni = document.getElementById("nearby-spot"),
+            hb = document.getElementById("hide-btn-wrap");
+          if (near) {
+            ni.style.display = "block";
+            hb.style.display = "block";
+          } else {
+            ni.style.display = "none";
+            hb.style.display = "none";
+          }
+        }
+      }
+
+      // ═══════════════════════════════════════════════════
+      //  ORIENTATION
+      // ═══════════════════════════════════════════════════
+      function isMobileDevice() {
+        return (
+          /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent) ||
+          (navigator.maxTouchPoints > 1 && window.innerWidth < 1200)
+        );
+      }
+      function checkOrientation() {
+        const warn = document.getElementById("rotate-warn");
+        if (!warn) return;
+        if (isMobileDevice() && window.innerHeight > window.innerWidth) {
+          warn.style.display = "flex";
+        } else {
+          warn.style.display = "none";
+        }
+      }
+      if (isMobileDevice() && screen.orientation && screen.orientation.lock) {
+        screen.orientation.lock("landscape").catch(() => {});
+      }
+      window.addEventListener("resize", checkOrientation);
+      window.addEventListener("orientationchange", checkOrientation);
+      checkOrientation();
+      startLoop();
+
+      // ═══════════════════════════════════════════════════
+      //  SCREEN HELPERS
+      // ═══════════════════════════════════════════════════
+      const SCREENS = [
+        "titleScreen",
+        "modeScreen",
+        "setupScreen",
+        "lobbyScreen",
+        "resultScreen",
+        "howScreen",
+        "multiScreen",
+      ];
+      function showScreen(id) {
+        SCREENS.forEach((s) => {
+          const el = document.getElementById(s);
+          if (el) {
+            if (s === id) el.classList.remove("hide");
+            else el.classList.add("hide");
+          }
+        });
+      }
+      function gotoMode() {
+        showScreen("modeScreen");
+      }
+      function gotoMultiplayer() {
+        showScreen("multiScreen");
+      }
+      function showHowToPlay() {
+        showScreen("howScreen");
+      }
+      function showGameUI(role) {
+        ["hud", "minimap-wrap", "controls", "chat-wrap"].forEach((id) => {
+          const el = document.getElementById(id);
+          if (el) el.style.display = "flex";
+        });
+        document.getElementById("hud").style.display = "block";
+        document.getElementById("minimap-wrap").style.display = "block";
+        document.getElementById("chat-wrap").style.display = "block";
+        if (role === "wolf") {
+          document.getElementById("role-text").textContent = "WEREWOLF";
+          document.getElementById("role-text").className = "wolf";
+          document.getElementById("scan-wrap").style.display = "flex";
+          document.getElementById("scan-area-lbl").style.display = "block";
+          document.getElementById("hide-btn-wrap").style.display = "none";
+          document.getElementById("sp-score").style.display =
+            mode === "sp" ? "block" : "none";
+          if (mode === "sp")
+            document.getElementById("sp-score").textContent =
+              "CAUGHT: 0 / " + aiHiders.length;
+        } else {
+          document.getElementById("role-text").textContent = "HIDER";
+          document.getElementById("role-text").className = "hider";
+          document.getElementById("scan-wrap").style.display = "none";
+          document.getElementById("scan-area-lbl").style.display = "none";
+          document.getElementById("hide-btn-wrap").style.display = "none";
+          document.getElementById("sp-score").style.display = "none";
+        }
+        document.getElementById("role-banner").style.display = "block";
+        document.getElementById("phase-badge").textContent = "DAYLIGHT";
+        document.getElementById("phase-badge").className = "";
+      }
+      function hideGameUI() {
+        [
+          "hud",
+          "minimap-wrap",
+          "controls",
+          "chat-wrap",
+          "role-banner",
+          "hide-btn-wrap",
+          "nearby-spot",
+          "sp-score",
+        ].forEach((id) => {
+          const el = document.getElementById(id);
+          if (el) el.style.display = "none";
+        });
+      }
+      function backToTitle() {
+        gameRunning = false;
+        if (ws) ws.close();
+        hideGameUI();
+        showScreen("titleScreen");
+        lightPhase = "day";
+        timeLeft = GAME_TIME;
+        lightCutLeft = LIGHT_CUT;
+        scanCD = 0;
+        dX.clearRect(0, 0, W, H);
+        gX.clearRect(0, 0, W, H);
+      }
+      function playAgain() {
+        showScreen("");
+        hideGameUI();
+        if (mode === "sp") startSinglePlayer();
+        else showScreen("multiScreen");
+      }
+
+      // ═══════════════════════════════════════════════════
+      //  MULTIPLAYER
+      // ═══════════════════════════════════════════════════
+      const COLORS = [
+        "#4488ff",
+        "#ff4488",
+        "#44ff88",
+        "#ffaa44",
+        "#aa44ff",
+        "#ff6644",
+        "#44ccff",
+      ];
+      let selColor = COLORS[0],
+        ws = null,
+        myId = null,
+        myRole = "hider",
+        gameState = null,
+        chatMsgs = [];
+      let isHost = false;
+      function gotoSetup(setupMode) {
+        showScreen("setupScreen");
+        document.getElementById("setup-back-btn").onclick = () =>
+          showScreen("multiScreen");
+        const colorOpts = COLORS.map(
+          (c, i) =>
+            `<div class="color-opt${i === 0 ? " sel" : ""}" style="background:${c}" onclick="pickColor(this,'${c}')"></div>`,
+        ).join("");
+        const inner = document.getElementById("setup-inner");
+        if (setupMode === "create") {
+          inner.innerHTML = `<div class="setup-title">CREATE ROOM</div><div style="height:16px"></div><label class="setup-label">YOUR NAME</label><input class="setup-input" id="nameIn" placeholder="HUNTER" maxlength="14" oninput="this.value=this.value.toUpperCase()"><div class="setup-spacer"></div><label class="setup-label">PICK YOUR COLOR</label><div class="color-row" id="colorRow">${colorOpts}</div><div style="height:20px"></div><button class="main-btn primary" style="width:220px;" onclick="doCreate()">CREATE ROOM</button>`;
+        } else {
+          inner.innerHTML = `<div class="setup-title">JOIN ROOM</div><div style="height:16px"></div><label class="setup-label">YOUR NAME</label><input class="setup-input" id="nameIn" placeholder="HUNTER" maxlength="14" oninput="this.value=this.value.toUpperCase()"><div class="setup-spacer"></div><label class="setup-label">ROOM CODE</label><input class="code-input" id="codeIn" placeholder="XXXX" maxlength="4" oninput="this.value=this.value.toUpperCase()"><div class="setup-spacer"></div><label class="setup-label">PICK YOUR COLOR</label><div class="color-row" id="colorRow">${colorOpts}</div><div style="height:20px"></div><button class="main-btn primary" style="width:220px;" onclick="doJoin()">JOIN ROOM</button>`;
+        }
+      }
+      function pickColor(el, c) {
+        selColor = c;
+        document
+          .querySelectorAll(".color-opt")
+          .forEach((o) => o.classList.toggle("sel", o === el));
+      }
+      function connectWS(cb) {
+        const SERVER_URL =
+          location.protocol === "https:"
+            ? `wss://${location.host}`
+            : location.hostname === "localhost" ||
+                location.hostname === "127.0.0.1"
+              ? `ws://${location.host}`
+              : null;
+        if (!SERVER_URL) {
+          toast("No server configured. See deployment guide.");
+          return;
+        }
+        try {
+          ws = new WebSocket(SERVER_URL);
+          ws.onopen = cb;
+          ws.onmessage = (e) => {
+            try {
+              handleMsg(JSON.parse(e.data));
+            } catch {}
+          };
+          ws.onerror = () => toast("Cannot connect to server. Is it running?");
+          ws.onclose = () => {
+            if (gameRunning) toast("Connection lost");
+          };
+        } catch (err) {
+          toast("Server not available. Start the server first.");
+        }
+      }
+      function doCreate() {
+        const name =
+          document.getElementById("nameIn")?.value.trim() || "HUNTER";
+        connectWS(() =>
+          ws.send(
+            JSON.stringify({ type: "create_room", name, color: selColor }),
+          ),
+        );
+      }
+      function doJoin() {
+        const name =
+          document.getElementById("nameIn")?.value.trim() || "HUNTER";
+        const code = document
+          .getElementById("codeIn")
+          ?.value.trim()
+          .toUpperCase();
+        if (!code || code.length !== 4) {
+          toast("Enter a 4-letter room code");
+          return;
+        }
+        connectWS(() =>
+          ws.send(
+            JSON.stringify({ type: "join_room", code, name, color: selColor }),
+          ),
+        );
+      }
+      function requestStart() {
+        ws?.send(JSON.stringify({ type: "start_game" }));
+      }
+      function leaveGame() {
+        if (ws) ws.close();
+        backToTitle();
+      }
+      function handleMsg(msg) {
+        switch (msg.type) {
+          case "room_created":
+            myId = msg.yourId;
+            isHost = true;
+            showScreen("lobbyScreen");
+            document.getElementById("lobby-code").textContent = msg.code;
+            document.getElementById("start-btn").style.display = "block";
+            break;
+          case "room_joined":
+            myId = msg.yourId;
+            showScreen("lobbyScreen");
+            document.getElementById("lobby-code").textContent = msg.code;
+            break;
+          case "lobby_state":
+            document.getElementById("lobby-list").innerHTML = msg.players
+              .map(
+                (p, i) =>
+                  `<div class="lobby-player"><div class="p-dot" style="background:${p.color}"></div><div class="p-name">${p.name}</div>${i === 0 ? '<div class="p-host">HOST</div>' : ""}</div>`,
+              )
+              .join("");
+            document.getElementById("lobby-status").textContent =
+              msg.players.length < 2
+                ? "Need at least 2 players to start"
+                : "Ready! Host can start the hunt.";
+            break;
+          case "role_assigned":
+            myRole = msg.role;
+            myId = msg.yourId;
+            break;
+          case "game_start":
+            mapData = msg.mapData;
+            showScreen("");
+            showGameUI(myRole);
+            mode = "mp";
+            lightPhase = "day";
+            timeLeft = GAME_TIME;
+            lightCutLeft = LIGHT_CUT;
+            scanCD = 0;
+            waveFX = [];
+            catchFX = [];
+            amHiding = false;
+            gameRunning = true;
+            showBanner(
+              myRole === "wolf" ? "YOU ARE THE WEREWOLF" : "YOU ARE A HIDER",
+              myRole === "wolf"
+                ? "Hunt them all down"
+                : "Stay hidden till dawn",
+              myRole === "wolf",
+            );
+            break;
+          case "state":
+            gameState = msg;
+            lightPhase = msg.lightPhase;
+            if (msg.players?.[myId]) {
+              const mp = msg.players[myId];
+              player.x = mp.x;
+              player.y = mp.y;
+            }
+            const hiders = Object.values(msg.players || {}).filter(
+              (p) => p.role === "hider",
+            );
+            document.getElementById("alive-val").textContent =
+              `${hiders.filter((p) => !p.caught).length}/${hiders.length}`;
+            break;
+          case "lights_out":
+            lightPhase = "night";
+            document.getElementById("phase-badge").textContent = "DARKNESS";
+            document.getElementById("phase-badge").className = "night";
+            showBanner("LIGHTS OUT", "The darkness is yours now", true);
+            break;
+          case "player_caught":
+            if (msg.id === myId) {
+              document.getElementById("caught-overlay").classList.add("show");
+              setTimeout(
+                () =>
+                  document
+                    .getElementById("caught-overlay")
+                    .classList.remove("show"),
+                4000,
+              );
+            }
+            break;
+          case "hide_success":
+            amHiding = true;
+            myHideMaxMs = msg.maxHideMs || 10000;
+            myHideStart = Date.now();
+            document.getElementById("hide-btn").textContent = "LEAVE SPOT";
+            document.getElementById("hide-btn").classList.add("hiding");
+            toast(`Hiding: ${msg.label} (${myHideMaxMs / 1000}s max)`, true);
+            break;
+          case "hide_fail":
+            toast(msg.msg);
+            break;
+          case "force_unhide":
+            amHiding = false;
+            myHideStart = 0;
+            document.getElementById("hide-btn").textContent = "HIDE HERE";
+            document.getElementById("hide-btn").classList.remove("hiding");
+            toast("You stayed too long — you were exposed!");
+            break;
+          case "player_hiding":
+            if (msg.id === myId && !msg.hiding) {
+              amHiding = false;
+              myHideStart = 0;
+              document.getElementById("hide-btn").textContent = "HIDE HERE";
+              document.getElementById("hide-btn").classList.remove("hiding");
+            }
+            break;
+          case "scan_result":
+            waveFX.push({ x: msg.px, y: msg.py, r: 0, alpha: 0.85 });
+            for (const d of msg.detected)
+              addPingEl(d.x, d.y, "#ffcc44", `📍 ${d.room}`);
+            if (msg.detected.length === 0)
+              addPingEl(player.x, player.y - 40, "#445566", "— CLEAR —");
+            break;
+          case "scan_wave":
+            waveFX.push({ x: msg.x, y: msg.y, r: 0, alpha: 0.85 });
+            break;
+          case "game_over":
+            gameRunning = false;
+            showBanner(
+              msg.wolfWins ? "HUNT COMPLETE" : "THEY ESCAPED",
+              msg.wolfWins ? "All prey consumed" : "Some survived till dawn",
+              !msg.wolfWins,
+            );
+            setTimeout(() => {
+              hideGameUI();
+              showScreen("resultScreen");
+              const rt = document.getElementById("result-title-el");
+              rt.textContent = msg.wolfWins ? "HUNT COMPLETE" : "THEY ESCAPED";
+              rt.style.color = msg.wolfWins ? "#e8c060" : "#cc4422";
+              document.getElementById("result-stat-el").textContent =
+                msg.wolfWins
+                  ? `All ${msg.total} survivors consumed.`
+                  : `${msg.caught} of ${msg.total} caught — dawn came too soon.`;
+              if (msg.results) {
+                document.getElementById("result-players-el").innerHTML =
+                  msg.results
+                    .map(
+                      (r) =>
+                        `<div class="rp-row"><div class="rp-dot" style="background:${r.role === "wolf" ? "#ff3311" : r.color}"></div><div class="rp-name">${r.name}</div><div class="rp-status ${r.role === "wolf" ? "wolf" : r.caught ? "caught" : "survived"}">${r.role === "wolf" ? "WEREWOLF" : r.caught ? "CAUGHT" : "SURVIVED"}</div></div>`,
+                    )
+                    .join("");
+              }
+            }, 2000);
+            break;
+          case "return_to_lobby":
+            setTimeout(() => {
+              gameRunning = false;
+              showScreen("lobbyScreen");
+              hideGameUI();
+              lightPhase = "day";
+              timeLeft = 120;
+              lightCutLeft = 25;
+              scanCD = 0;
+              amHiding = false;
+              myHideStart = 0;
+              dX.clearRect(0, 0, W, H);
+              document.getElementById("lobby-list").innerHTML = msg.players
+                .map(
+                  (p, i) =>
+                    `<div class="lobby-player"><div class="p-dot" style="background:${p.color}"></div><div class="p-name">${p.name}</div>${i === 0 ? '<div class="p-host">HOST</div>' : ""}</div>`,
+                )
+                .join("");
+              document.getElementById("lobby-status").textContent =
+                "Game ended — ready for next round!";
+              document.getElementById("lobby-code").textContent = myCode;
+              showBanner("BACK TO LOBBY", "Play again anytime");
+            }, 3000);
+            break;
+          case "chat":
+            addChat(msg);
+            break;
+          case "error":
+            toast(msg.msg);
+            break;
+        }
+      }
+      let myHideStart = 0,
+        myHideMaxMs = 10000;
+      function addChat(msg) {
+        chatMsgs.push(msg);
+        if (chatMsgs.length > 6) chatMsgs.shift();
+        document.getElementById("chat-log").innerHTML = chatMsgs
+          .map(
+            (m) => `<div class="chat-msg ${m.role}">${m.name}: ${m.text}</div>`,
+          )
+          .join("");
+      }
+    </script>
+  </body>
 </html>
