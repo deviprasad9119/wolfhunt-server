@@ -5,13 +5,28 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="theme-color" content="#000000">
-<meta name="screen-orientation" content="portrait">
+<meta name="screen-orientation" content="landscape">
+<style id="rotate-style">
+#rotate-msg{
+  display:none;position:fixed;inset:0;z-index:99999;
+  background:#000;flex-direction:column;
+  align-items:center;justify-content:center;
+  font-family:'Cinzel',serif;
+}
+#rotate-msg .rot-icon{font-size:52px;margin-bottom:16px;animation:rotSpin 2s ease-in-out infinite;}
+#rotate-msg .rot-text{font-size:14px;letter-spacing:4px;color:#e8c060;text-align:center;line-height:1.8;}
+#rotate-msg .rot-sub{font-size:10px;letter-spacing:3px;color:#664422;margin-top:8px;}
+@keyframes rotSpin{0%{transform:rotate(0deg);}40%{transform:rotate(-90deg);}60%{transform:rotate(-90deg);}100%{transform:rotate(0deg);}}
+</style>
+<meta name="screen-orientation" content="landscape">
 <title>WEREWOLF HUNT</title>
 <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700;900&family=Cinzel:wght@400;600&family=JetBrains+Mono&display=swap" rel="stylesheet">
 <style>
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;touch-action:none;user-select:none;}
 :root{--gold:#e8c060;--gold2:#b89040;--red:#ff3311;--dark:#0a0604;--border:rgba(180,120,40,0.3);}
-@media screen and (orientation:landscape){body::before{content:"ROTATE YOUR PHONE";position:fixed;inset:0;z-index:9999;background:#000;color:#e8c060;font-family:"Cinzel",serif;font-size:18px;letter-spacing:4px;display:flex;align-items:center;justify-content:center;text-align:center;}}body{background:#000;overflow:hidden;font-family:'Cinzel',serif;color:var(--gold);}
+#rotate-warn{display:none;position:fixed;inset:0;z-index:9999;background:#000;align-items:center;justify-content:center;flex-direction:column;gap:16px;pointer-events:none;}
+body{background:#000;overflow:hidden;font-family:'Cinzel',serif;color:var(--gold);}
+/* orientation handled by JS only */
 canvas{display:block;position:fixed;top:0;left:0;}
 #darkCanvas{pointer-events:none;z-index:3;}
 #gameCanvas{z-index:2;}
@@ -286,6 +301,16 @@ canvas{display:block;position:fixed;top:0;left:0;}
 </style>
 </head>
 <body>
+<div id="rotate-warn">
+  <div style="font-size:52px;">📱</div>
+  <div style="font-family:'Cinzel',serif;font-size:16px;letter-spacing:4px;color:#e8c060;text-align:center;">ROTATE TO LANDSCAPE</div>
+  <div style="font-size:10px;letter-spacing:3px;color:#664422;text-align:center;">THIS GAME REQUIRES<br>HORIZONTAL MODE</div>
+</div>
+<div id="rotate-msg">
+  <div class="rot-icon">📱</div>
+  <div class="rot-text">ROTATE YOUR DEVICE</div>
+  <div class="rot-sub">LANDSCAPE MODE REQUIRED</div>
+</div>
 <canvas id="gameCanvas"></canvas>
 <canvas id="darkCanvas"></canvas>
 <div id="pings"></div>
@@ -984,6 +1009,29 @@ function loop(ts){
     else{ni.style.display='none';hb.style.display='none';}
   }
 }
+// ── ORIENTATION LOCK — landscape on mobile only, ignore on desktop ──
+function isMobileDevice(){
+  return /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent) ||
+    (navigator.maxTouchPoints > 1 && window.innerWidth < 1200);
+}
+function checkOrientation(){
+  const warn = document.getElementById('rotate-warn');
+  if(!warn) return;
+  // Only show rotate warning on MOBILE devices in portrait mode
+  // Desktop/laptop: always hide the warning (they are always "landscape enough")
+  if(isMobileDevice() && window.innerHeight > window.innerWidth){
+    warn.style.display='flex';
+  } else {
+    warn.style.display='none';
+  }
+}
+// Try to lock orientation on mobile
+if(isMobileDevice() && screen.orientation && screen.orientation.lock){
+  screen.orientation.lock('landscape').catch(()=>{});
+}
+window.addEventListener('resize', checkOrientation);
+window.addEventListener('orientationchange', checkOrientation);
+checkOrientation(); // run once on load
 startLoop();
 
 // ═══════════════════════════════════════════════════
