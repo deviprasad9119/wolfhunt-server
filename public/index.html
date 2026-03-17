@@ -5,12 +5,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="theme-color" content="#000000">
+<meta name="screen-orientation" content="portrait">
 <title>WEREWOLF HUNT</title>
 <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700;900&family=Cinzel:wght@400;600&family=JetBrains+Mono&display=swap" rel="stylesheet">
 <style>
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;touch-action:none;user-select:none;}
 :root{--gold:#e8c060;--gold2:#b89040;--red:#ff3311;--dark:#0a0604;--border:rgba(180,120,40,0.3);}
-body{background:#000;overflow:hidden;font-family:'Cinzel',serif;color:var(--gold);}
+@media screen and (orientation:landscape){body::before{content:"ROTATE YOUR PHONE";position:fixed;inset:0;z-index:9999;background:#000;color:#e8c060;font-family:"Cinzel",serif;font-size:18px;letter-spacing:4px;display:flex;align-items:center;justify-content:center;text-align:center;}}body{background:#000;overflow:hidden;font-family:'Cinzel',serif;color:var(--gold);}
 canvas{display:block;position:fixed;top:0;left:0;}
 #darkCanvas{pointer-events:none;z-index:3;}
 #gameCanvas{z-index:2;}
@@ -921,13 +922,41 @@ function loop(ts){
 
   // MP other players
   if(mode==='mp'&&gameState?.players){
+    const playerIds=Object.keys(gameState.players);
     for(const[id,p]of Object.entries(gameState.players)){
       if(id===myId)continue;
-      if(p.hiding&&myRole!=='wolf')continue;
-      if(lightPhase==='night'){const d=Math.hypot(p.x-player.x,p.y-player.y);if(d>190&&myRole!=='wolf')continue;if(d>190&&myRole==='wolf'&&p.role==='hider')continue;}
-      const sx=p.x-cam.x,sy=p.y-cam.y;if(sx<-40||sx>W+40||sy<-40||sy>H+40)continue;
+      // VISIBILITY RULES:
+      // Hiding players are COMPLETELY INVISIBLE to the wolf (use scanner to find them)
+      // Hiding players are visible as faint ghosts to fellow hiders only
+      if(p.hiding){
+        if(myRole==='wolf')continue; // wolf cannot see hiding players at all
+        // fellow hiders see a faint ghost — handled by drawHider opacity
+      }
+      if(lightPhase==='night'){
+        const d=Math.hypot(p.x-player.x,p.y-player.y);
+        if(myRole==='wolf'&&d>190&&p.role==='hider')continue;
+        if(myRole==='hider'&&d>130)continue;
+      }
+      const sx=p.x-cam.x,sy=p.y-cam.y;
+      if(sx<-40||sx>W+40||sy<-40||sy>H+40)continue;
       if(p.role==='wolf')drawWerewolf(sx,sy,p.anim||'idle',FT);
-      else drawHider(sx,sy,Object.keys(gameState.players).indexOf(id)%5,p.anim||'idle',p.caught,p.hiding,FT,false);
+      else drawHider(sx,sy,playerIds.indexOf(id)%5,p.anim||'idle',p.caught,p.hiding,FT,false);
+    }
+  }
+  // Hide countdown timer for self when hiding in MP
+  if(mode==='mp'&&amHiding&&myHideStart>0){
+    const elapsed=Date.now()-myHideStart;
+    const remaining=Math.max(0,(myHideMaxMs-elapsed)/1000);
+    const pct=Math.min(1,elapsed/myHideMaxMs);
+    const sx=player.x-cam.x,sy=player.y-cam.y-54;
+    gX.fillStyle='rgba(0,0,0,0.65)';gX.beginPath();gX.roundRect(sx-30,sy,60,10,5);gX.fill();
+    const bc=remaining>3?'#44cc66':remaining>1?'#ffaa22':'#ff3311';
+    gX.fillStyle=bc;gX.beginPath();gX.roundRect(sx-30,sy,60*(1-pct),10,5);gX.fill();
+    gX.fillStyle='#fff';gX.font='bold 9px Cinzel';gX.textAlign='center';
+    gX.fillText(remaining.toFixed(1)+'s',sx,sy-3);
+    if(remaining<=3){
+      gX.fillStyle='rgba(255,50,0,'+( 0.12+Math.sin(FT*8)*0.08)+')';
+      gX.beginPath();gX.arc(sx,sy+44,32,0,Math.PI*2);gX.fill();
     }
   }
 
@@ -1076,20 +1105,72 @@ function handleMsg(msg){
       break;
     case 'lights_out':lightPhase='night';document.getElementById('phase-badge').textContent='DARKNESS';document.getElementById('phase-badge').className='night';showBanner('LIGHTS OUT','The darkness is yours now',true);break;
     case 'player_caught':if(msg.id===myId){document.getElementById('caught-overlay').classList.add('show');setTimeout(()=>document.getElementById('caught-overlay').classList.remove('show'),4000);}break;
-    case 'hide_success':amHiding=true;document.getElementById('hide-btn').textContent='LEAVE SPOT';document.getElementById('hide-btn').classList.add('hiding');toast(`Hiding: ${msg.label}`,true);break;
+    case 'hide_success':
+      amHiding=true;
+      myHideMaxMs=msg.maxHideMs||10000;
+      myHideStart=Date.now();
+      document.getElementById('hide-btn').textContent='LEAVE SPOT';
+      document.getElementById('hide-btn').classList.add('hiding');
+      toast(`Hiding: ${msg.label} (${myHideMaxMs/1000}s max)`,true);
+      break;
     case 'hide_fail':toast(msg.msg);break;
-    case 'player_hiding':if(msg.id===myId&&!msg.hiding){amHiding=false;document.getElementById('hide-btn').textContent='HIDE HERE';document.getElementById('hide-btn').classList.remove('hiding');}break;
-    case 'scan_result':waveFX.push({x:msg.px,y:msg.py,r:0,alpha:0.85});for(const d of msg.detected)addPingEl(d.x,d.y,'#ffcc44',`📍 ${d.room}`);if(msg.detected.length===0)addPingEl(player.x,player.y-40,'#445566','— CLEAR —');break;
+    case 'force_unhide':
+      amHiding=false;myHideStart=0;
+      document.getElementById('hide-btn').textContent='HIDE HERE';
+      document.getElementById('hide-btn').classList.remove('hiding');
+      toast('You stayed too long — you were exposed!');
+      break;
+    case 'player_hiding':
+      if(msg.id===myId&&!msg.hiding){
+        amHiding=false;myHideStart=0;
+        document.getElementById('hide-btn').textContent='HIDE HERE';
+        document.getElementById('hide-btn').classList.remove('hiding');
+      }
+      break;
+    case 'scan_result':
+      waveFX.push({x:msg.px,y:msg.py,r:0,alpha:0.85});
+      for(const d of msg.detected)addPingEl(d.x,d.y,'#ffcc44',`📍 ${d.room}`);
+      if(msg.detected.length===0)addPingEl(player.x,player.y-40,'#445566','— CLEAR —');
+      break;
     case 'scan_wave':waveFX.push({x:msg.x,y:msg.y,r:0,alpha:0.85});break;
+    case 'player_caught':
+      if(msg.id===myId){document.getElementById('caught-overlay').classList.add('show');setTimeout(()=>document.getElementById('caught-overlay').classList.remove('show'),4000);}
+      break;
     case 'game_over':
-      gameRunning=false;hideGameUI();showScreen('resultScreen');
-      const rt=document.getElementById('result-title-el');rt.textContent=msg.wolfWins?'HUNT COMPLETE':'THEY ESCAPED';rt.style.color=msg.wolfWins?'#e8c060':'#cc4422';
-      document.getElementById('result-stat-el').textContent=msg.wolfWins?`All survivors consumed.`:`${msg.caught} of ${msg.total} caught — dawn came too soon.`;
+      gameRunning=false;
+      // Show result for 5 seconds then auto return to lobby
+      showBanner(msg.wolfWins?'HUNT COMPLETE':'THEY ESCAPED',msg.wolfWins?'All prey consumed':'Some survived till dawn',!msg.wolfWins);
+      setTimeout(()=>{
+        hideGameUI();
+        showScreen('resultScreen');
+        const rt=document.getElementById('result-title-el');
+        rt.textContent=msg.wolfWins?'HUNT COMPLETE':'THEY ESCAPED';
+        rt.style.color=msg.wolfWins?'#e8c060':'#cc4422';
+        document.getElementById('result-stat-el').textContent=msg.wolfWins?`All ${msg.total} survivors consumed.`:`${msg.caught} of ${msg.total} caught — dawn came too soon.`;
+        if(msg.results){
+          document.getElementById('result-players-el').innerHTML=msg.results.map(r=>`<div class="rp-row"><div class="rp-dot" style="background:${r.role==='wolf'?'#ff3311':r.color}"></div><div class="rp-name">${r.name}</div><div class="rp-status ${r.role==='wolf'?'wolf':r.caught?'caught':'survived'}">${r.role==='wolf'?'WEREWOLF':r.caught?'CAUGHT':'SURVIVED'}</div></div>`).join('');
+        }
+      },2000);
+      break;
+    case 'return_to_lobby':
+      // Server sent everyone back to lobby after game ends — stay in room!
+      setTimeout(()=>{
+        gameRunning=false;
+        showScreen('lobbyScreen');
+        hideGameUI();
+        lightPhase='day';timeLeft=120;lightCutLeft=25;scanCD=0;amHiding=false;myHideStart=0;
+        dX.clearRect(0,0,W,H);
+        document.getElementById('lobby-list').innerHTML=msg.players.map((p,i)=>`<div class="lobby-player"><div class="p-dot" style="background:${p.color}"></div><div class="p-name">${p.name}</div>${i===0?'<div class="p-host">HOST</div>':''}</div>`).join('');
+        document.getElementById('lobby-status').textContent='Game ended — ready for next round!';
+        document.getElementById('lobby-code').textContent=myCode;
+        showBanner('BACK TO LOBBY','Play again anytime');
+      },3000);
       break;
     case 'chat':addChat(msg);break;
     case 'error':toast(msg.msg);break;
   }
 }
+let myHideStart=0,myHideMaxMs=10000;
 
 function addChat(msg){chatMsgs.push(msg);if(chatMsgs.length>6)chatMsgs.shift();document.getElementById('chat-log').innerHTML=chatMsgs.map(m=>`<div class="chat-msg ${m.role}">${m.name}: ${m.text}</div>`).join('');}
 </script>
